@@ -175,15 +175,18 @@
             padding: var(--space-2);
         }
 
-        /* 3.3 Main Editor Area */
-        .main {
-            grid-area: main;
-            background-color: var(--bg-primary);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            position: relative;
-        }
+
+/* 3.3 Main Editor Area */
+.main {
+    grid-area: main;
+    background-color: var(--bg-primary);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    /* Tambahkan ini untuk memastikan flex child terhitung benar */
+    min-height: 0; 
+}
 
         .tabs-container {
             display: flex;
@@ -251,19 +254,26 @@
             color: var(--error);
         }
 
-        .editor-container {
-            flex: 1;
-            position: relative;
-            overflow: hidden;
-        }
+.editor-container {
+    flex: 1; /* Ini sangat penting agar container mengambil sisa ruang */
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    /* Pastikan tidak ada margin/padding yang mendorong container keluar */
+}
 
-        #ace-editor {
-            width: 100%;
-            height: 100%;
-            font-family: var(--font-mono);
-            font-size: 14px;
-            line-height: 1.6;
-        }
+#ace-editor {
+    position: absolute; /* Ace Editor bekerja paling stabil dengan posisi absolute di dalam container relatif */
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    line-height: 1.6;
+}
 
         /* 3.4 Right Panel (Console + Tools) */
         .right-panel {
