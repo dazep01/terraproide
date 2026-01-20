@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TERRA PRO IDE 4.0 - Ultimate Fusion</title>
+    
+    <!-- Core Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.2/ace.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.2/ext-language_tools.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.2/ext-searchbox.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.2/ext-beautify.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dexie/3.2.4/dexie.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://unpkg.com/esprima@4.0.1/dist/esprima.min.js"></script>
+    <script src="https://unpkg.com/estraverse@5.3.0/estraverse.min.js"></script>
+    <script src="https://unpkg.com/escodegen@2.1.0/escodegen.browser.min.js"></script>
+    
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.7/beautify.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.7/beautify-css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.7/beautify-html.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/uglify-js/3.17.4/uglify-js.min.js"></script>
+    
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="/css/main.css">
+    <!-- Color Lab Integration CSS -->
+    <link rel="stylesheet" href="/css/color-lab.css">
+
+</head>
+<body>
+    <!-- =============== 9. APPLICATION STRUCTURE =============== -->
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-code"></i>
+                </div>
+                <span>TERRA PRO IDE 4.0</span>
+            </div>
+            
+            <div class="header-actions">
+                <button class="btn btn-icon" onclick="IDE.toggleSidebarModal()" title="Show File Explorer">
+                    <i class="fas fa-folder-tree"></i>
+                </button>
+                
+                <button class="btn btn-secondary" onclick="IDE.createFile()">
+                    <i class="fas fa-file-plus"></i> New File
+                </button>
+                
+                <button class="btn btn-secondary" onclick="IDE.saveFile()">
+                    <i class="fas fa-save"></i> Save
+                </button>
+                
+                <button class="btn btn-primary" onclick="IDE.runPreview()">
+                    <i class="fas fa-play"></i> Run (F5)
+                </button>
+                
+                <button class="btn btn-secondary" onclick="IDE.exportProject()">
+                    <i class="fas fa-download"></i> Export
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Editor Area -->
+        <main class="main">
+            <div class="tabs-container" id="tabs-container">
+                <!-- Tabs will be populated by JavaScript -->
+            </div>
+            
+            <div class="editor-container">
+                <div id="ace-editor"></div>
+            </div>
+        </main>
+
+        <!-- Right Panel (Console + Tools) -->
+        <aside class="right-panel">
+            <div class="panel-tabs">
+                <div class="panel-tab active" data-panel="console">Console</div>
+                <div class="panel-tab" data-panel="tools">Tools</div>
+                <div class="panel-tab" data-panel="ast">AST Viewer</div>
+            </div>
+            
+            <!-- Console Panel -->
+            <div class="panel-content active" id="console-panel">
+                <div class="console-output" id="console-output">
+                    <!-- Console output will be populated by JavaScript -->
+                </div>
+                <div class="console-input-container">
+                    <div class="console-prompt">></div>
+                    <input type="text" class="console-input" id="console-input" 
+                           placeholder="Type JavaScript command..." autocomplete="off">
+                </div>
+            </div>
+            
+            <!-- Tools Panel -->
+            <div class="panel-content" id="tools-panel">
+                <div class="tools-grid">
+                <!--    <div class="tool-card lint" onclick="IDE.runLint()"> -->
+                    <div class="tool-card lint" onclick="bukaPemberitahuan()">
+                        <div class="tool-icon">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <div class="tool-title">Lint & Validate</div>
+                        <div class="tool-desc">Find and fix code issues</div>
+                    </div>
+                    
+                    <div class="tool-card format" onclick="IDE.beautifyCode()">
+                        <div class="tool-icon">
+                            <i class="fas fa-magic"></i>
+                        </div>
+                        <div class="tool-title">Format Code</div>
+                        <div class="tool-desc">Prettify with AST</div>
+                    </div>
+                    
+                    <div class="tool-card minify" onclick="IDE.minifyCode()">
+                        <div class="tool-icon">
+                            <i class="fas fa-compress"></i>
+                        </div>
+                        <div class="tool-title">Minify</div>
+                        <div class="tool-desc">Optimize file size</div>
+                    </div>
+                    
+                    <div class="tool-card obfuscate" onclick="IDE.obfuscateCode()">
+                        <div class="tool-icon">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <div class="tool-title">Obfuscate JS</div>
+                        <div class="tool-desc">Professional protection JS code</div>
+                    </div>
+                    
+                <!--    <div class="tool-card analyze" onclick="IDE.analyzeAST()"> -->
+                    <div class="tool-card analyze" onclick="bukaPemberitahuan()">
+                        <div class="tool-icon">
+                            <i class="fas fa-project-diagram"></i>
+                        </div>
+                        <div class="tool-title">AST Analyzer</div>
+                        <div class="tool-desc">Visualize code structure</div>
+                    </div>
+                    
+                    <div class="tool-card export" onclick="IDE.exportProject()">
+                        <div class="tool-icon">
+                            <i class="fas fa-file-export"></i>
+                        </div>
+                        <div class="tool-title">Export ZIP</div>
+                        <div class="tool-desc">Download project</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- AST Panel -->
+            <div class="panel-content" id="ast-panel">
+                <div class="p-4">
+                    <div class="sidebar-title mb-3">AST Security Rules</div>
+                    <div class="space-y-3">
+                        <label class="flex items-center gap-3">
+                            <input type="checkbox" id="rule-no-eval" checked>
+                            <span>Disallow eval()</span>
+                        </label>
+                        <label class="flex items-center gap-3">
+                            <input type="checkbox" id="rule-no-var" checked>
+                            <span>Use let/const instead of var</span>
+                        </label>
+                        <label class="flex items-center gap-3">
+                            <input type="checkbox" id="rule-strict-mode" checked>
+                            <span>Require strict mode</span>
+                        </label>
+                        <label class="flex items-center gap-3">
+                            <input type="checkbox" id="rule-no-with" checked>
+                            <span>Disallow with statement</span>
+                        </label>
+                        <button class="btn btn-primary w-full mt-4" onclick="IDE.applyASTRules()">
+                            Apply Rules
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="status-items">
+                <div class="status-item" id="status-file">
+                    <i class="fas fa-file-code"></i>
+                    <span>No file</span>
+                </div>
+                <div class="status-item" id="status-language">
+                    <i class="fas fa-code"></i>
+                    <span>Plain Text</span>
+                </div>
+                <div class="status-item" id="status-position">
+                    <i class="fas fa-location-arrow"></i>
+                    <span>Ln 1, Col 1</span>
+                </div>
+            </div>
+            
+            <div class="status-items">
+                <div class="status-item" id="status-db">
+                    <i class="fas fa-database"></i>
+                    <span>IndexedDB: Ready</span>
+                </div>
+                <div class="status-item">
+                    <i class="fas fa-bolt"></i>
+                    <span>Ultra Fusion 4.0</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- =============== 10. MODALS & OVERLAYS =============== -->
+    
+            <!-- Sidebar (File Explorer) -->
+     <div class="sidebar-modal" id="sidebar-modal">
+        <div class="sidebar-modal-content">
+<div class="sidebar-modal-header">
+    <div class="sidebar-modal-title">File Explorer</div>
+    <button class="sidebar-modal-close" onclick="IDE.toggleSidebarModal()">
+        <i class="fas fa-times"></i>
+    </button>
+</div>
+
+<div class="sidebar-actions">
+    <button class="btn btn-icon" onclick="IDE.createFile()" title="New File">
+        <i class="fas fa-file"></i>
+    </button>
+    <button class="btn btn-icon" onclick="IDE.createFolder()" title="New Folder">
+        <i class="fas fa-folder-plus"></i>
+    </button>
+    <button class="btn btn-icon" onclick="IDE.refreshFileTree()" title="Refresh">
+        <i class="fas fa-sync-alt"></i>
+    </button>
+</div>
+
+<div class="file-tree" id="file-tree">
+    <!-- File tree akan di-render oleh JS -->
+</div>            
+<div class="sidebar-modal-section">
+    <div class="sidebar-modal-title">Assets</div>
+    <div class="assets-grid" id="assets-grid">
+        <!-- Assets akan di-render oleh JS -->
+    </div>
+    <button class="btn btn-secondary w-full mt-3" onclick="IDE.uploadAsset()">
+        <i class="fas fa-upload"></i> Upload Asset
+    </button>
+</div>
+        </div>
+        <div class="sidebar-modal-overlay" onclick="IDE.toggleSidebarModal()"></div>
+     </div>
+    
+    <!-- Preview Modal -->
+    <div class="preview-modal" id="preview-modal">
+        <div class="preview-header">
+            <div class="preview-title">Live Preview</div>
+            
+            <div class="device-controls">
+                <button class="device-btn active" data-size="desktop" onclick="IDE.setPreviewSize('desktop')">
+                    <i class="fas fa-desktop"></i> Desktop
+                </button>
+                <button class="device-btn" data-size="tablet" onclick="IDE.setPreviewSize('tablet')">
+                    <i class="fas fa-tablet-alt"></i> Tablet
+                </button>
+                <button class="device-btn" data-size="mobile" onclick="IDE.setPreviewSize('mobile')">
+                    <i class="fas fa-mobile-alt"></i> Mobile
+                </button>
+                
+                <div class="size-inputs">
+                    <input type="number" class="size-input" id="preview-width" value="1200" min="200" max="5000">
+                    <span>×</span>
+                    <input type="number" class="size-input" id="preview-height" value="800" min="200" max="5000">
+                    <button class="btn btn-icon" onclick="IDE.applyCustomSize()">
+                        <i class="fas fa-check"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="flex gap-2">
+                <button class="btn btn-secondary" onclick="IDE.refreshPreview()">
+                    <i class="fas fa-redo"></i> Refresh
+                </button>
+                <button class="btn btn-secondary" onclick="IDE.closePreview()">
+                    <i class="fas fa-times"></i> Close
+                </button>
+            </div>
+        </div>
+        
+        <div class="preview-content">
+            <div class="iframe-container" id="iframe-container">
+                <div class="iframe-size-label" id="iframe-size-label">1200 × 800</div>
+                <iframe id="preview-iframe" sandbox="allow-scripts allow-same-origin"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- New File Modal -->
+    <div class="modal" id="new-file-modal">
+        <div class="modal-header">
+            <div class="modal-title">Create New File</div>
+            <button class="btn btn-icon" onclick="IDE.closeModal('new-file-modal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="file-name">File Name</label>
+                <input type="text" id="file-name" class="form-control" placeholder="script.js">
+            </div>
+            <div class="form-group">
+                <label for="file-type">File Type</label>
+                <select id="file-type" class="form-control">
+                    <option value="html">HTML (.html)</option>
+                    <option value="css">CSS (.css)</option>
+                    <option value="js">JavaScript (.js)</option>
+                    <option value="json">JSON (.json)</option>
+                    <option value="md">Markdown (.md)</option>
+                    <option value="txt">Plain Text (.txt)</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="IDE.closeModal('new-file-modal')">Cancel</button>
+            <button class="btn btn-primary" onclick="IDE.createNewFile()">Create</button>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Context Menu -->
+    <div class="context-menu" id="context-menu">
+        <div class="context-item" data-action="open">
+            <i class="fas fa-folder-open"></i> Open
+        </div>
+        <div class="context-item" data-action="rename">
+            <i class="fas fa-edit"></i> Rename
+        </div>
+        <div class="context-divider"></div>
+        <div class="context-item" data-action="delete">
+            <i class="fas fa-trash"></i> Delete
+        </div>
+    </div>
+
+    <!-- Asset Upload Input (Hidden) -->
+    <input type="file" id="asset-upload" multiple accept="image/*,video/*,audio/*" style="display: none;">
+    
+<!-- POPUP PENGEMBANGAN -->
+<div id="developmentModal" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); display:none; align-items:center; justify-content:center; z-index:10000; animation:fadeIn 0.3s ease;">
+    <div style="background:white; width:90%; max-width:500px; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,0.3); overflow:hidden; animation:slideUp 0.4s ease;">
+        <div style="background:linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color:white; padding:24px; text-align:center;">
+            <h2 style="margin:0; font-size:24px; font-weight:600; letter-spacing:-0.5px;">Fitur Dalam Pengembangan</h2>
+            <p style="margin:8px 0 0; opacity:0.9; font-size:14px; font-weight:400;">AST Linter Engine & Advanced Code Analysis</p>
+        </div>
+        <div style="padding:32px; color:#334155;">
+    <p style="margin:0 0 16px; line-height:1.6; font-size:15px;">Kami sedang mengembangkan sistem analisis kode yang lebih canggih untuk meningkatkan kemampuan linting dan code review di Terra IDE.</p>
+    
+    <div style="background:#fef3c7; border:1px solid #fbbf24; color:#92400e; padding:12px 16px; border-radius:8px; margin:20px 0; font-size:14px; line-height:1.5;">
+        Fitur ini sedang dalam tahap pengembangan aktif. Beberapa komponen mungkin belum tersedia sepenuhnya.
+    </div>
+    
+    <div style="background:#f8fafc; border-radius:12px; padding:20px; margin:20px 0; border-left:4px solid #4f46e5;">
+        <h3 style="margin:0 0 12px; color:#1e293b; font-size:16px; font-weight:600;">Fitur yang Akan Hadir:</h3>
+        <ul style="margin:0; padding-left:20px;">
+            <li style="margin:8px 0; color:#475569; font-size:14px; line-height:1.5;">AST Parser canggih dengan Pratt parsing algorithm</li>
+            <li style="margin:8px 0; color:#475569; font-size:14px; line-height:1.5;">Rule-based linting dengan 30+ aturan standar industri</li>
+            <li style="margin:8px 0; color:#475569; font-size:14px; line-height:1.5;">Scope analysis untuk variabel dan fungsi</li>
+            <li style="margin:8px 0; color:#475569; font-size:14px; line-height:1.5;">Type inference dasar untuk JavaScript</li>
+            <li style="margin:8px 0; color:#475569; font-size:14px; line-height:1.5;">Real-time error detection dengan suggestion</li>
+        </ul>
+    </div>
+    
+    <div style="display:flex; align-items:center; justify-content:space-between; margin:24px 0; padding:16px; background:#f1f5f9; border-radius:10px; border:1px solid #e2e8f0;">
+        <div>
+            <div style="font-weight:500; color:#475569; font-size:14px;">Status Pengembangan</div>
+            <div style="display:flex; flex-wrap:wrap; gap:10px; margin:16px 0;">
+                <span style="background:#e0e7ff; color:#4f46e5; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:500;">JavaScript</span>
+                <span style="background:#e0e7ff; color:#4f46e5; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:500;">ESTree Spec</span>
+                <span style="background:#e0e7ff; color:#4f46e5; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:500;">Pratt Parser</span>
+                <span style="background:#e0e7ff; color:#4f46e5; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:500;">Visitor Pattern</span>
+            </div>
+        </div>
+        <div style="background:#f59e0b; color:white; padding:6px 12px; border-radius:20px; font-size:12px; font-weight:600; letter-spacing:0.5px;">Dalam Pengembangan</div>
+    </div>
+    
+    <div style="margin:20px 0;">
+        <div style="height:6px; background:#e2e8f0; border-radius:3px; overflow:hidden;">
+            <div style="height:100%; background:linear-gradient(90deg, #4f46e5, #7c3aed); width:65%; border-radius:3px; transition:width 0.3s ease;"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-top:8px; font-size:12px; color:#64748b;">
+            <span>Progress: 65%</span>
+            <span>Estimasi: 2-3 minggu</span>
+        </div>
+    </div>
+    
+    <p style="margin:0; line-height:1.6; font-size:15px;">Sementara fitur ini disempurnakan, Anda dapat menggunakan fitur lain di Terra Pro IDE ini dseperti biasa. Tim pengembangan bekerja untuk menyajikan pengalaman yang optimal.</p>
+</div>
+
+<div style="padding:20px 32px 32px; text-align:center; border-top:1px solid #f1f5f9;">
+    <button id="continueBtn" style="background:linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color:white; border:none; padding:12px 28px; border-radius:10px; font-size:15px; font-weight:600; cursor:pointer; transition:all 0.2s ease; min-width:160px;">OK Mengerti</button>
+    <button id="notifyBtn" style="background:#f1f5f9; color:#475569; border:none; padding:12px 28px; border-radius:10px; font-size:15px; font-weight:500; cursor:pointer; transition:all 0.2s ease; margin-left:12px;">Ingatkan Saya</button>
+</div>
+    </div>
+</div>
+
+<script>
+function bukaPemberitahuan() {
+    const pemberitahuan = document.getElementById('developmentModal');
+    pemberitahuan.style.display = 'flex';
+    pemberitahuan.style.animation = 'fadeIn 0.3s ease';
+    
+    // Reset tombol Ingatkan Saya jika perlu
+    const notifyBtn = document.getElementById('notifyBtn');
+    notifyBtn.textContent = 'Ingatkan Saya';
+    notifyBtn.style.background = '#f1f5f9';
+    notifyBtn.style.color = '#475569';
+}
+
+// Fungsi untuk menutup dari luar (opsional)
+function tutupPemberitahuan() {
+    const pemberitahuan = document.getElementById('developmentModal');
+    pemberitahuan.style.animation = 'fadeOut 0.3s ease';
+    setTimeout(() => {
+        pemberitahuan.style.display = 'none';
+    }, 300);
+}
+
+// Event listener untuk klik di luar pemberitahuan
+document.getElementById('developmentModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        tutupPemberitahuan();
+    }
+});
+
+    document.getElementById('continueBtn').addEventListener('click', function() {
+        const modal = document.getElementById('developmentModal');
+        modal.style.animation = 'fadeOut 0.3s ease';
+        setTimeout(() => {
+            modal.style.display = 'none';
+            localStorage.setItem('terraIDE_skipDevNotice', 'true');
+        }, 300);
+    });
+    
+    document.getElementById('notifyBtn').addEventListener('click', function() {
+        this.textContent = 'Akan Diingatkan';
+        this.style.background = '#10b981';
+        this.style.color = 'white';
+        setTimeout(() => {
+            document.getElementById('developmentModal').style.display = 'none';
+            localStorage.setItem('terraIDE_wantNotify', 'true');
+        }, 800);
+    });
+    
+    if (localStorage.getItem('terraIDE_skipDevNotice')) {
+        document.getElementById('developmentModal').style.display = 'none';
+    }
+    
+    const style = document.createElement('style');
+    style.textContent = `
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+  `;
+    document.head.appendChild(style);
+</script>
+<!-- AKHIR POPUP PENGEMBANGAN -->
+    
+    <script src="/scripts/main.js"></script>
+    <!-- Color Lab Integration -->
+    <script src="/scripts/color-lab-integration.js"></script>
+
+</body>
+</html>
