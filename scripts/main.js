@@ -3944,14 +3944,25 @@ Complexity: ${Math.round(nodes / Math.max(1, functions))} nodes per function
             }
           },
 
-          loadColorLabCSS() {
-            // Create link element for Color Lab CSS
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = './css/color-lab.css';
-            link.type = 'text/css';
-            document.head.appendChild(link);
-          },
+loadColorLabCSS() {
+    // 1. Definisikan path relatif terhadap index.html (Root)
+    const cssPath = 'css/color-lab.css'; 
+
+    // 2. Cek apakah stylesheet sudah ada agar tidak double-load
+    if (!document.querySelector(`link[href="${cssPath}"]`)) {
+        const link = document.createElement('link');
+        link.id = 'terra-color-lab-css'; // Tambahkan ID untuk tracking jika perlu
+        link.rel = 'stylesheet';
+        link.type = 'text/css';
+        link.href = cssPath; // Menghapus './' lebih disarankan untuk GitHub Pages
+        
+        document.head.appendChild(link);
+        
+        // Log untuk debugging di konsol IDE Anda
+        this.logToConsole('Color Lab CSS integrated successfully', 'success');
+    }
+},
+
 
           openColorLab(color) {
             if (this.ColorLab) {
