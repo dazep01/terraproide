@@ -1,0 +1,3264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Chroma Pro - Color Lab</title>
+  <!-- Ganti baris ini: -->
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+<!-- Menjadi: -->
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <style>
+:root {
+  --bg-color: #f2f2f7;
+  --card-bg: rgba(255, 255, 255, 0.65);
+  --card-border: rgba(255, 255, 255, 0.4);
+  --text-primary: #1c1c1e;
+  --text-secondary: #636366;
+  --accent: #007aff;
+  --radius: 20px;
+  --current-color: #007aff;
+  --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  --glow-opacity: 0.15; /* Tambahkan ini */
+}
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-color: #000000;
+        --card-bg: rgba(30, 30, 32, 0.70);
+        --card-border: rgba(255, 255, 255, 0.1);
+        --text-primary: #ffffff;
+        --text-secondary: #98989d;
+      }
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Ambient Glow Background */
+body::before {
+    content: '';
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 120vw;
+    height: 120vh;
+    background: radial-gradient(
+        circle at 30% 20%,
+        var(--current-color)40 0%,
+        transparent 70%
+    );
+    opacity: var(--glow-opacity, 0.15);
+    filter: blur(80px) hue-rotate(var(--hue-rotate, 0deg));
+    z-index: -1;
+    transition: opacity 0.5s ease, filter 0.5s ease;
+    pointer-events: none;
+    mix-blend-mode: soft-light;
+}
+
+/* Tambahkan layer kedua untuk efek yang lebih dalam */
+body::after {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(
+            circle at 70% 80%,
+            rgba(255, 255, 255, 0.05) 0%,
+            transparent 50%
+        ),
+        radial-gradient(
+            circle at 20% 40%,
+            rgba(0, 0, 0, 0.03) 0%,
+            transparent 40%
+        );
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0.5;
+}
+
+    .app-container {
+      width: 100%;
+      max-width: 1100px;
+      height: 100vh; 
+      display: grid;
+      grid-template-rows: auto 1fr;
+      padding: 20px;
+      gap: 20px;
+    }
+
+    @media (min-width: 800px) {
+      .app-container {
+        height: auto;
+        min-height: 90vh;
+        padding: 40px;
+      }
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 10px;
+    }
+
+    header h1 {
+      font-size: 28px;
+      font-weight: 800;
+      margin: 0;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Layout Grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      height: 100%;
+      overflow-y: auto;
+      padding-bottom: 20px;
+    }
+
+    @media (min-width: 800px) {
+      .main-grid {
+        grid-template-columns: 350px 1fr;
+        align-items: start;
+        overflow: visible;
+      }
+    }
+
+    /* Cards Styling */
+    .glass-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(40px) saturate(180%);
+      -webkit-backdrop-filter: blur(40px) saturate(180%);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      transition: var(--transition);
+    }
+
+    /* Left Panel: Controls */
+    .control-panel {
+      align-items: center;
+      position: sticky;
+      top: 0;
+    }
+
+    .color-preview-container {
+      position: relative;
+      width: 160px;
+      height: 160px;
+      margin: 10px 0;
+    }
+
+    .color-circle {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      box-shadow: 
+        0 10px 40px -10px var(--current-color),
+        inset 0 0 0 1px rgba(0,0,0,0.05);
+      transition: background-color 0.1s;
+      position: relative;
+      z-index: 2;
+    }
+    
+    .color-halo {
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        width: 110%; height: 110%;
+        border-radius: 50%;
+        border: 2px dashed var(--text-secondary);
+        opacity: 0.2;
+        animation: spin 20s linear infinite;
+        pointer-events: none;
+    }
+
+    @keyframes spin { 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+
+    .input-wrapper {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .hex-input-group {
+      position: relative;
+      display: flex;
+      align-items: center;
+      background: rgba(0,0,0,0.03);
+      border-radius: 14px;
+      padding: 4px;
+      border: 1px solid rgba(0,0,0,0.05);
+      transition: border-color 0.2s;
+    }
+
+    .hex-input-group:focus-within {
+      border-color: var(--accent);
+      background: rgba(0,0,0,0.01);
+    }
+
+    .hex-hash {
+      padding-left: 16px;
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 18px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      background: transparent;
+      border: none;
+      padding: 12px;
+      font-family: 'SF Mono', ui-monospace, monospace;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+      outline: none;
+      text-transform: uppercase;
+    }
+
+    input[type="color"] {
+      width: 42px;
+      height: 42px;
+      -webkit-appearance: none;
+      border: none;
+      background: none;
+      cursor: pointer;
+      margin-right: 4px;
+    }
+    
+    input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+    input[type="color"]::-webkit-color-swatch { 
+        border: none; 
+        border-radius: 10px; 
+        box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
+    }
+
+    /* Range Slider Styling */
+    .slider-group { width: 100%; }
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      background: rgba(120, 120, 128, 0.2);
+      border-radius: 3px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 22px;
+      height: 22px;
+      background: #fff;
+      border: 0.5px solid rgba(0,0,0,0.04);
+      border-radius: 50%;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      cursor: grab;
+      transition: transform 0.1s;
+    }
+    input[type="range"]::-webkit-slider-thumb:active { transform: scale(1.1); cursor: grabbing; }
+
+    /* Right Panel: Data */
+    .data-panel {
+      gap: 24px;
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+    }
+
+    .result-item {
+      background: rgba(255, 255, 255, 0.5);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 12px;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .dark .result-item { background: rgba(0,0,0,0.2); }
+
+    .result-item:hover {
+      background: var(--card-bg);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    .result-label {
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--text-secondary);
+      margin-bottom: 2px;
+      display: block;
+    }
+
+    .result-value {
+      font-family: 'SF Mono', monospace;
+      font-size: 13px;
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .copy-btn {
+      background: transparent;
+      color: var(--text-secondary);
+      border: none;
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center; justify-content: center;
+      transition: var(--transition);
+    }
+
+    .copy-btn:hover { background: rgba(0, 122, 255, 0.1); color: var(--accent); }
+
+    /* Palette Section */
+    .palette-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .palette-row {
+      display: flex;
+      height: 60px;
+      width: 100%;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    .palette-chip {
+      flex: 1;
+      height: 100%;
+      cursor: pointer;
+      position: relative;
+      transition: flex 0.2s ease;
+    }
+    
+    .palette-chip:hover { flex: 2; }
+    
+    .palette-chip span {
+      position: absolute;
+      bottom: 4px; left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      font-family: monospace;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    
+    .palette-chip:hover span { opacity: 1; }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 30px; left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(0, 0, 0, 0.85);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: 500;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 100;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+
+#visionContainer .result-item {
+    animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.library-chip {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    cursor: pointer;
+    position: relative;
+    border: 2px solid white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.library-chip:hover {
+    transform: scale(1.15) rotate(5deg);
+    z-index: 10;
+}
+
+.library-chip .delete-hint {
+    position: absolute;
+    top: -5px; right: -5px;
+    background: #ff3b30;
+    color: white;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    font-size: 10px;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: 0.2s;
+}
+
+.library-chip:hover .delete-hint { opacity: 1; }
+
+/* Tambahkan di bagian CSS */
+#whiteContrast, #blackContrast {
+    transition: all 0.3s ease;
+    border: 1px solid var(--card-border);
+}
+
+#whiteContrast .badge, #blackContrast .badge {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 800;
+    font-size: 9px;
+    text-transform: uppercase;
+}
+
+/* Tambahkan di bagian CSS */
+.color-transitioning * {
+    transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Perbarui color halo animation */
+.color-halo {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 110%;
+    height: 110%;
+    border-radius: 50%;
+    border: 2px dashed var(--text-secondary);
+    opacity: 0.2;
+    animation: spin 20s linear infinite;
+    pointer-events: none;
+    transition: border-color 0.5s ease, animation-duration 1s ease;
+}
+
+@keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Tambahkan CSS untuk consistency */
+:root {
+  --animation-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --animation-medium: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --animation-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+}
+
+/* Standardize all interactive elements */
+.interactive {
+  cursor: pointer;
+  transition: all var(--animation-fast);
+}
+
+.interactive:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Better focus states for accessibility */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Enhanced Dark Mode Preview */
+#darkModePreview {
+  position: relative;
+  overflow: hidden;
+}
+
+#darkModePreview::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.5;
+}
+
+.dark-preview-card {
+  background: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(0,0,0,0.05));
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.3s ease;
+}
+
+.dark-preview-card:hover {
+  border-color: rgba(255,255,255,0.12);
+  transform: translateY(-2px);
+}
+
+.contrast-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.contrast-badge.pass {
+  background: rgba(52, 199, 89, 0.15);
+  color: #34c759;
+}
+
+.contrast-badge.warn {
+  background: rgba(255, 149, 0, 0.15);
+  color: #ff9500;
+}
+
+.contrast-badge.fail {
+  background: rgba(255, 59, 48, 0.15);
+  color: #ff3b30;
+}
+
+/* Dark Mode Action Buttons */
+.dark-mode-action-btn {
+    border: none;
+    padding: 8px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s ease;
+}
+
+.dark-mode-action-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.dark-mode-action-btn:active {
+    transform: translateY(0);
+}
+
+/* Dark Preview Container */
+.dark-preview-container {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.dark-preview-container.theme-applied {
+    border: 2px solid var(--accent);
+    animation: pulse 1s ease;
+}
+
+@keyframes pulse {
+    0%, 100% { box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    50% { box-shadow: 0 4px 30px rgba(var(--accent-rgb, 0, 122, 255), 0.3); }
+}
+
+/* Theme Applied State */
+body.dark-theme-applied .glass-card {
+    background: rgba(30, 30, 32, 0.8);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+body.dark-theme-applied .result-item {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+body.dark-theme-applied input,
+body.dark-theme-applied select {
+    background: rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+#themeActiveIndicator {
+    transition: all 0.3s ease;
+}
+
+#themeActiveIndicator:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+}
+
+#themeActiveIndicator button:hover {
+    opacity: 0.8;
+}
+  </style>
+</head>
+
+<body>
+  <div class="app-container" role="main">
+    <header>
+      <h1>Chroma <span style="font-weight: 300; opacity: 0.5;">Pro</span></h1>
+      <a href="#" style="color: var(--text-primary); text-decoration: none;">
+        <i class="ph-fill ph-github-logo" style="font-size: 24px;"></i>
+      </a>
+    </header>
+    
+    <div class="main-grid">
+        <section class="glass-card control-panel">
+            <div class="color-preview-container">
+                <div class="color-halo"></div>
+                <div id="preview" class="color-circle"></div>
+            </div>
+            
+            <div class="input-wrapper">
+                <div class="hex-input-group">
+                    <span class="hex-hash">#</span>
+                    <input type="text" id="hexInput" spellcheck="false" value="007AFF" maxlength="6">
+                    <input type="color" id="picker" value="#007AFF">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <span>Opacity</span>
+                        <span id="alphaValue">100%</span>
+                    </div>
+                    <input type="range" id="alphaInput" min="0" max="100" value="100">
+                </div>
+                
+<!-- CONTRAST CHECKER -->
+<div class="contrast-area" style="width: 100%; margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--card-border);">
+    <div class="slider-header"><span>Contrast Ratio (WCAG)</span></div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div id="whiteContrast" style="padding: 10px; border-radius: 10px; text-align: center;">
+            <div style="font-size: 10px; font-weight: 800; margin-bottom: 4px;">ON WHITE</div>
+            <div class="score" style="font-size: 18px; font-weight: 800;">1.0</div>
+            <div class="badge" style="font-size: 10px; margin-top: 2px;">FAIL</div>
+        </div>
+        <div id="blackContrast" style="padding: 10px; border-radius: 10px; text-align: center;">
+            <div style="font-size: 10px; font-weight: 800; margin-bottom: 4px;">ON BLACK</div>
+            <div class="score" style="font-size: 18px; font-weight: 800;">1.0</div>
+            <div class="badge" style="font-size: 10px; margin-top: 2px;">FAIL</div>
+        </div>
+    </div>
+</div>
+
+            </div>
+            
+<div class="library-section" style="width: 100%; margin-top: 20px;">
+<div class="slider-header">
+    <span>Your Library</span>
+    <div style="display: flex; gap: 5px;">
+        <button onclick="clearLibrary()" style="background: rgba(255, 59, 48, 0.1); color: #ff3b30; border: none; padding: 4px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer;">CLEAR ALL</button>
+        <button onclick="exportLibraryCSS()" style="background: rgba(0,0,0,0.05); color: var(--text-primary); border: none; padding: 4px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer;">EXPORT CSS</button>
+        <button onclick="saveToLibrary()" style="background: var(--accent); color: white; border: none; padding: 4px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer;">SAVE CURRENT</button>
+    </div>
+</div>
+
+    <div id="libraryContainer" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; min-height: 40px; padding: 10px; background: rgba(0,0,0,0.03); border-radius: 12px;">
+    </div>
+</div>
+        </section>
+
+        <section class="glass-card data-panel">
+
+<div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--card-border);">
+    <div class="section-title"><i class="ph ph-image"></i> Pick from Image</div>
+    <div style="display: flex; flex-direction: column; gap: 10px; align-items: center;">
+        <input type="file" id="imageLoader" accept="image/*" style="display: none;">
+        <label for="imageLoader" style="cursor: pointer; background: var(--accent); color: white; padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+            <i class="ph ph-upload-simple"></i> Upload Photo
+        </label>
+        <canvas id="imageCanvas" style="max-width: 100%; max-height: 300px; border-radius: 12px; cursor: crosshair; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"></canvas>
+        <p id="canvasHint" style="font-size: 11px; color: var(--text-secondary); display: none;">Click on the image to pick a color</p>
+    </div>
+</div>
+
+            <div>
+                <div class="section-title"><i class="ph ph-code"></i> Color Space</div>
+                <div class="results-grid" id="results">
+                    </div>
+            </div>
+
+            <div>
+                <div class="section-title">
+                    <i class="ph ph-swatches"></i> Tints & Shades
+                    <button onclick="downloadPalette()" style="margin-left: auto; background: none; border: none; color: var(--accent); cursor: pointer; font-size: 18px;" title="Download Palette as Image">
+                        <i class="ph ph-download-simple"></i>
+                    </button>
+                </div>
+
+                <div class="palette-container">
+                    <div class="palette-row" id="tintsRow"></div>
+                    <div class="palette-row" id="shadesRow"></div>
+                </div>
+            </div>
+            
+            <div>
+                <div class="section-title"><i class="ph ph-intersect"></i> Color Harmonies</div>
+                <div class="results-grid" id="harmonyContainer">
+                </div>
+            </div>
+            
+            <div>
+                <div class="section-title"><i class="ph ph-eye"></i> Color Blindness Simulator</div>
+                <div class="results-grid" id="visionContainer">
+                </div>
+            </div>
+
+       </section>
+       
+<div class="glass-card" style="margin-top: 20px;">
+    <div class="section-title"><i class="ph ph-magic-wand"></i> Advanced Lab</div>
+    
+    <div style="margin-bottom: 20px;">
+        <span class="result-label">Color Interpolation (Mixer)</span>
+        <div style="display: flex; gap: 10px; margin-top: 8px;">
+            <input type="color" id="mixerColorB" value="#ffffff" title="Mix with this color">
+            <input type="range" id="mixerSteps" min="3" max="10" value="5" title="Steps">
+            <span id="stepsLabel" style="font-size: 12px; font-weight: bold;">5 Steps</span>
+        </div>
+        <div id="mixerResult" class="palette-row" style="margin-top: 10px;"></div>
+    </div>
+    
+<div style="margin-top: 20px;">
+    <span class="result-label">Mood Generator (OKLCH)</span>
+    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+        <button onclick="applyMood('pastel')" class="copy-btn" style="flex:1; font-size: 10px;">PASTEL</button>
+        <button onclick="applyMood('neon')" class="copy-btn" style="flex:1; font-size: 10px;">NEON</button>
+        <button onclick="applyMood('earth')" class="copy-btn" style="flex:1; font-size: 10px;">EARTH</button>
+    </div>
+</div>
+
+<div id="darkModePreview" style="margin-top: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <div>
+            <span class="result-label">Smart Dark Mode</span>
+            <div style="font-size: 9px; color: var(--text-secondary); margin-top: 2px;">
+                Generate and apply dark theme for your app
+            </div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <button onclick="showContrastAnalysis()" 
+                    style="background: rgba(0,0,0,0.05); border: none; padding: 4px 8px; border-radius: 6px; font-size: 10px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                <i class="ph ph-info"></i> Analysis
+            </button>
+            <button onclick="generateDarkModeVariants()"
+                    style="background: rgba(0,0,0,0.05); border: none; padding: 4px 8px; border-radius: 6px; font-size: 10px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                <i class="ph ph-shuffle"></i> Variants
+            </button>
+        </div>
+    </div>
+    
+    <!-- Preview Container -->
+<div id="darkPreviewBox" class="dark-preview-container">
+    <div style="padding: 16px; border-radius: 12px; background: var(--card-bg); transition: all 0.3s ease;">
+        <div id="darkPreviewHeader" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 12px; border-radius: 8px; background: rgba(0,0,0,0.05);">
+            <div style="font-size: 12px; font-weight: 600;">App Header</div>
+            <button id="darkPreviewAccent" style="background: var(--accent); color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 11px; cursor: pointer;">
+                Action
+            </button>
+        </div>
+        <div id="darkPreviewContent" style="padding: 12px; border-radius: 8px; background: rgba(0,0,0,0.03);">
+            <div style="font-size: 11px; margin-bottom: 8px;">Sample Content</div>
+            <div style="display: flex; gap: 8px; margin-top: 12px;">
+                <div style="flex: 1; text-align: center; padding: 8px; background: rgba(0,0,0,0.05); border-radius: 6px; font-size: 10px;">Item 1</div>
+                <div style="flex: 1; text-align: center; padding: 8px; background: rgba(0,0,0,0.05); border-radius: 6px; font-size: 10px;">Item 2</div>
+            </div>
+        </div>
+        <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-size: 10px; color: var(--text-secondary);">
+                WCAG: <span id="darkWCAGLabel" style="font-weight: 600;">AA</span>
+            </div>
+            <div id="darkContrastScore" style="font-size: 10px; padding: 4px 8px; border-radius: 4px; background: rgba(52, 199, 89, 0.1); color: #34c759;">
+                4.5:1
+            </div>
+        </div>
+    </div>
+</div>
+    
+    <!-- Action Buttons dengan fungsi berbeda -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 12px;">
+        <button onclick="copyDarkModeColors()" 
+                class="dark-mode-action-btn" 
+                style="background: rgba(0,0,0,0.05);">
+            <i class="ph ph-copy-simple"></i>
+            <span>Copy Colors</span>
+        </button>
+        
+        <button onclick="applyDarkModePreview()" 
+                class="dark-mode-action-btn" 
+                style="background: rgba(var(--accent-rgb, 0, 122, 255), 0.1); color: var(--accent);">
+            <i class="ph ph-eye"></i>
+            <span>Apply to Preview</span>
+        </button>
+        
+        <button onclick="applyDarkModeToApp()" 
+                class="dark-mode-action-btn" 
+                style="background: var(--accent); color: white;">
+            <i class="ph ph-moon"></i>
+            <span>Apply to App</span>
+        </button>
+    </div>
+    
+    <!-- Theme Status Indicator -->
+    <div id="themeStatus" style="margin-top: 12px; padding: 8px; border-radius: 8px; background: rgba(0,0,0,0.03); font-size: 10px; display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span>🎨 Dark Theme Active</span>
+            <button onclick="removeDarkTheme()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 12px;">
+                <i class="ph ph-x"></i>
+            </button>
+        </div>
+        <div style="font-size: 9px; color: var(--text-secondary); margin-top: 4px;">
+            Based on <span id="themeBaseColor" style="font-weight: 600;"></span>
+        </div>
+    </div>
+</div>
+
+    <div>
+        <span class="result-label">Developer Export (Current Color)</span>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
+            <button onclick="exportFormat('tailwind')" class="copy-btn" style="width: 100%; font-size: 11px;">TAILWIND</button>
+            <button onclick="exportFormat('json')" class="copy-btn" style="width: 100%; font-size: 11px;">JSON</button>
+            <button onclick="exportFormat('swift')" class="copy-btn" style="width: 100%; font-size: 11px;">SWIFT (UI)</button>
+            <button onclick="exportFormat('kotlin')" class="copy-btn" style="width: 100%; font-size: 11px;">KOTLIN (XML)</button>
+        </div>
+    </div>
+</div>
+
+    </div>
+  </div>
+
+  <div id="toast" class="toast">
+      <i class="ph-fill ph-check-circle" style="color: #4cd964;"></i>
+      <span>Copied to clipboard</span>
+  </div>
+  
+  <script>
+// ============================================
+// CHROMA PRO - ADVANCED COLOR SCIENCE ENGINE
+// ============================================
+
+// STATE MANAGEMENT & INITIALIZATION
+// ============================================
+const state = {
+    hex: '#007aff',
+    alpha: 1,
+    rgb: { r: 0, g: 122, b: 255 },
+    hsl: { h: 214, s: 100, l: 50 },
+    oklab: { L: 0.532, a: -0.136, b: -0.265 },
+    oklch: { L: 0.532, C: 0.298, h: 243.5 }
+};
+
+let savedColors = JSON.parse(localStorage.getItem('chroma_library')) || [];
+
+// DOM ELEMENTS
+// ============================================
+const hexInput = document.getElementById('hexInput');
+const picker = document.getElementById('picker');
+const alphaInput = document.getElementById('alphaInput');
+const alphaValueText = document.getElementById('alphaValue');
+const preview = document.getElementById('preview');
+const resultsContainer = document.getElementById('results');
+const tintsRow = document.getElementById('tintsRow');
+const shadesRow = document.getElementById('shadesRow');
+const toast = document.getElementById('toast');
+const canvas = document.getElementById('imageCanvas');
+const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+// PRECISION COLOR CONVERSION ENGINE
+// ============================================
+
+/**
+ * HEX to RGB dengan validasi lengkap
+ */
+function hexToRgb(hex) {
+    // 1. Bersihkan input dari spasi atau karakter aneh
+    hex = hex.replace(/[^0-9A-Fa-f]/g, '');
+
+    // 2. Jika panjangnya tidak valid (harus 3 atau 6), kembalikan null
+    if (hex.length !== 3 && hex.length !== 6) {
+        return null; 
+    }
+
+    // 3. Ekspansi format 3 digit (misal: "abc" -> "aabbcc")
+    if (hex.length === 3) {
+        hex = hex.split('').map(char => char + char).join('');
+    }
+
+    // 4. Konversi ke angka desimal
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+
+    return { r, g, b };
+}
+
+
+/**
+ * RGB to HEX dengan alpha support
+ */
+function rgbToHex(r, g, b, alpha = null) {
+    const clamp = (value) => Math.max(0, Math.min(255, Math.round(value)));
+    
+    const hexR = clamp(r).toString(16).padStart(2, '0');
+    const hexG = clamp(g).toString(16).padStart(2, '0');
+    const hexB = clamp(b).toString(16).padStart(2, '0');
+    
+    let hex = `#${hexR}${hexG}${hexB}`.toUpperCase();
+    
+    if (alpha !== null && alpha < 1) {
+        const hexAlpha = Math.round(alpha * 255).toString(16).padStart(2, '0');
+        hex += hexAlpha;
+    }
+    
+    return hex;
+}
+
+/**
+ * RGB to HSL dengan presisi tinggi
+ */
+function rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const diff = max - min;
+    
+    let h = 0, s = 0, l = (max + min) / 2;
+    
+    if (diff !== 0) {
+        s = l > 0.5 ? diff / (2 - max - min) : diff / (max + min);
+        
+        switch (max) {
+            case r: h = (g - b) / diff + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / diff + 2; break;
+            case b: h = (r - g) / diff + 4; break;
+        }
+        
+        h *= 60;
+        if (h < 0) h += 360;
+    }
+    
+    return {
+        h: Math.round(h * 100) / 100,
+        s: Math.round(s * 100 * 100) / 100,
+        l: Math.round(l * 100 * 100) / 100
+    };
+}
+
+/**
+ * HSL to RGB dengan presisi tinggi
+ */
+function hslToRgb(h, s, l) {
+    h /= 360; s /= 100; l /= 100;
+    
+    let r, g, b;
+    
+    if (s === 0) {
+        r = g = b = l;
+    } else {
+        const hue2rgb = (p, q, t) => {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1/6) return p + (q - p) * 6 * t;
+            if (t < 1/2) return q;
+            if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+        };
+        
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+    }
+    
+    return {
+        r: Math.round(r * 255),
+        g: Math.round(g * 255),
+        b: Math.round(b * 255)
+    };
+}
+
+/**
+ * HSL to HEX converter yang benar
+ */
+function hslToHex(h, s, l) {
+    const rgb = hslToRgb(h, s, l);
+    return rgbToHex(rgb.r, rgb.g, rgb.b);
+}
+
+/**
+ * RGB to HWB (Hue-Whiteness-Blackness)
+ */
+function rgbToHwb(r, g, b) {
+    const hsl = rgbToHsl(r, g, b);
+    const w = Math.min(r, g, b) / 255;
+    const bk = 1 - Math.max(r, g, b) / 255;
+    
+    return {
+        h: Math.round(hsl.h * 100) / 100,
+        w: Math.round(w * 100 * 100) / 100,
+        b: Math.round(bk * 100 * 100) / 100
+    };
+}
+
+/**
+ * RGB to XYZ (D65 illuminant)
+ */
+function rgbToXyz(r, g, b) {
+    let rLin = r / 255;
+    let gLin = g / 255;
+    let bLin = b / 255;
+    
+    rLin = rLin > 0.04045 ? Math.pow((rLin + 0.055) / 1.055, 2.4) : rLin / 12.92;
+    gLin = gLin > 0.04045 ? Math.pow((gLin + 0.055) / 1.055, 2.4) : gLin / 12.92;
+    bLin = bLin > 0.04045 ? Math.pow((bLin + 0.055) / 1.055, 2.4) : bLin / 12.92;
+    
+    const x = rLin * 0.4124564 + gLin * 0.3575761 + bLin * 0.1804375;
+    const y = rLin * 0.2126729 + gLin * 0.7151522 + bLin * 0.0721750;
+    const z = rLin * 0.0193339 + gLin * 0.1191920 + bLin * 0.9503041;
+    
+    return { x, y, z };
+}
+
+/**
+ * XYZ to LAB (D65 reference white)
+ */
+function xyzToLab(x, y, z) {
+    const refX = 0.95047;
+    const refY = 1.00000;
+    const refZ = 1.08883;
+    
+    let xRatio = x / refX;
+    let yRatio = y / refY;
+    let zRatio = z / refZ;
+    
+    const f = (t) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16/116;
+    
+    const fx = f(xRatio);
+    const fy = f(yRatio);
+    const fz = f(zRatio);
+    
+    const L = 116 * fy - 16;
+    const a = 500 * (fx - fy);
+    const b = 200 * (fy - fz);
+    
+    return { L, a, b };
+}
+
+/**
+ * RGB to LAB (via XYZ)
+ */
+function rgbToLab(r, g, b) {
+    const xyz = rgbToXyz(r, g, b);
+    return xyzToLab(xyz.x, xyz.y, xyz.z);
+}
+
+/**
+ * RGB to OKLAB (Modern, perceptually uniform)
+ */
+function rgbToOklab(r, g, b) {
+    // Linearize RGB
+    let rLin = r / 255;
+    let gLin = g / 255;
+    let bLin = b / 255;
+    
+    rLin = rLin > 0.04045 ? Math.pow((rLin + 0.055) / 1.055, 2.4) : rLin / 12.92;
+    gLin = gLin > 0.04045 ? Math.pow((gLin + 0.055) / 1.055, 2.4) : gLin / 12.92;
+    bLin = bLin > 0.04045 ? Math.pow((bLin + 0.055) / 1.055, 2.4) : bLin / 12.92;
+    
+    // Apply OKLAB matrix (simplified)
+    const l = 0.4122214708 * rLin + 0.5363325363 * gLin + 0.0514459329 * bLin;
+    const m = 0.2119034982 * rLin + 0.6806995451 * gLin + 0.1073969566 * bLin;
+    const s = 0.0883024619 * rLin + 0.2817188376 * gLin + 0.6299787005 * bLin;
+    
+    const lCubeRoot = Math.cbrt(l);
+    const mCubeRoot = Math.cbrt(m);
+    const sCubeRoot = Math.cbrt(s);
+    
+    return {
+        L: 0.2104542553 * lCubeRoot + 0.7936177850 * mCubeRoot - 0.0040720468 * sCubeRoot,
+        a: 1.9779984951 * lCubeRoot - 2.4285922050 * mCubeRoot + 0.4505937099 * sCubeRoot,
+        b: 0.0259040371 * lCubeRoot + 0.7827717662 * mCubeRoot - 0.8086757660 * sCubeRoot
+    };
+}
+
+/**
+ * OKLAB to OKLCH
+ */
+function oklabToOklch(oklab) {
+    const C = Math.sqrt(oklab.a * oklab.a + oklab.b * oklab.b);
+    let h = Math.atan2(oklab.b, oklab.a) * (180 / Math.PI);
+    
+    if (h < 0) h += 360;
+    if (C < 0.0001) h = 0; // Avoid NaN for achromatic colors
+    
+    return {
+        L: oklab.L,
+        C: C,
+        h: h
+    };
+}
+
+/**
+ * OKLCH to OKLAB
+ */
+function oklchToOklab(oklch) {
+    const a = oklch.C * Math.cos(oklch.h * Math.PI / 180);
+    const b = oklch.C * Math.sin(oklch.h * Math.PI / 180);
+    
+    return {
+        L: oklch.L,
+        a: a,
+        b: b
+    };
+}
+
+/**
+ * OKLAB to RGB (Inverse transformation)
+ */
+function oklabToRgb(oklab) {
+    // Reverse OKLAB transformation
+    const l = oklab.L + 0.3963377774 * oklab.a + 0.2158037573 * oklab.b;
+    const m = oklab.L - 0.1055613458 * oklab.a - 0.0638541728 * oklab.b;
+    const s = oklab.L - 0.0894841775 * oklab.a - 1.2914855480 * oklab.b;
+    
+    const lCube = l * l * l;
+    const mCube = m * m * m;
+    const sCube = s * s * s;
+    
+    // Reverse linear RGB transformation
+    let rLin = 4.0767416621 * lCube - 3.3077115913 * mCube + 0.2309699292 * sCube;
+    let gLin = -1.2684380046 * lCube + 2.6097574011 * mCube - 0.3413193965 * sCube;
+    let bLin = -0.0041960863 * lCube - 0.7034186147 * mCube + 1.7076147010 * sCube;
+    
+    // Delinearize
+    rLin = rLin > 0.0031308 ? 1.055 * Math.pow(rLin, 1/2.4) - 0.055 : 12.92 * rLin;
+    gLin = gLin > 0.0031308 ? 1.055 * Math.pow(gLin, 1/2.4) - 0.055 : 12.92 * gLin;
+    bLin = bLin > 0.0031308 ? 1.055 * Math.pow(bLin, 1/2.4) - 0.055 : 12.92 * bLin;
+    
+    // Clamp and scale to 0-255
+    return {
+        r: Math.max(0, Math.min(255, Math.round(rLin * 255))),
+        g: Math.max(0, Math.min(255, Math.round(gLin * 255))),
+        b: Math.max(0, Math.min(255, Math.round(bLin * 255)))
+    };
+}
+
+// ADVANCED COLOR OPERATIONS
+// ============================================
+
+/**
+ * Calculate relative luminance (WCAG 2.1)
+ */
+function getLuminance(r, g, b) {
+    const [rs, gs, bs] = [r, g, b].map(c => {
+        c /= 255;
+        return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+}
+
+/**
+ * Calculate contrast ratio between two luminances
+ */
+function getContrastRatio(lum1, lum2) {
+    const lighter = Math.max(lum1, lum2);
+    const darker = Math.min(lum1, lum2);
+    return (lighter + 0.05) / (darker + 0.05);
+}
+
+/**
+ * Get WCAG compliance status
+ */
+function getWCAGStatus(ratio) {
+    if (ratio >= 7) return { 
+        label: 'AAA', 
+        level: 'AAA',
+        description: 'Enhanced contrast (7:1)',
+        color: '#34c759',
+        passed: true
+    };
+    if (ratio >= 4.5) return { 
+        label: 'AA', 
+        level: 'AA',
+        description: 'Minimum contrast (4.5:1)',
+        color: '#34c759',
+        passed: true
+    };
+    if (ratio >= 3) return { 
+        label: 'LARGE', 
+        level: 'AA-Large',
+        description: 'Large text only (3:1)',
+        color: '#ff9500',
+        passed: true
+    };
+    return { 
+        label: 'FAIL', 
+        level: 'Fail',
+        description: 'Insufficient contrast',
+        color: '#ff3b30',
+        passed: false
+    };
+}
+
+/**
+ * Get optimal text color for background
+ */
+function getContrastColor(hex) {
+    const rgb = hexToRgb(hex);
+    const luminance = getLuminance(rgb.r, rgb.g, rgb.b);
+    return luminance > 0.179 ? '#000000' : '#FFFFFF';
+}
+
+/**
+ * Generate tints (mix with white)
+ */
+function generateTints(r, g, b, steps = 5) {
+    const tints = [];
+    for (let i = 1; i <= steps; i++) {
+        const factor = i * (1 / (steps + 1));
+        const tr = Math.round(r + (255 - r) * factor);
+        const tg = Math.round(g + (255 - g) * factor);
+        const tb = Math.round(b + (255 - b) * factor);
+        tints.push(rgbToHex(tr, tg, tb));
+    }
+    return tints;
+}
+
+/**
+ * Generate shades (mix with black)
+ */
+function generateShades(r, g, b, steps = 5) {
+    const shades = [];
+    for (let i = 1; i <= steps; i++) {
+        const factor = i * (1 / (steps + 1));
+        const sr = Math.round(r * (1 - factor));
+        const sg = Math.round(g * (1 - factor));
+        const sb = Math.round(b * (1 - factor));
+        shades.push(rgbToHex(sr, sg, sb));
+    }
+    return shades;
+}
+
+/**
+ * Generate color harmonies
+ */
+function generateHarmonies(h, s, l) {
+    const harmonies = [
+        { label: 'Monochromatic', angles: [0] },
+        { label: 'Complementary', angles: [0, 180] },
+        { label: 'Split Complementary', angles: [0, 150, 210] },
+        { label: 'Analogous', angles: [0, 30, -30] },
+        { label: 'Triadic', angles: [0, 120, 240] },
+        { label: 'Tetradic', angles: [0, 90, 180, 270] },
+        { label: 'Square', angles: [0, 90, 180, 270] }
+    ];
+    
+    return harmonies.map(harmony => {
+        const colors = harmony.angles.map(angle => {
+            const newH = (h + angle + 360) % 360;
+            return hslToHex(newH, s, l);
+        });
+        
+        return {
+            name: harmony.label,
+            colors: colors,
+            baseIndex: harmony.angles.indexOf(0)
+        };
+    });
+}
+
+/**
+ * Color blindness simulation matrices
+ */
+const colorBlindnessMatrices = {
+    protanopia: [
+        [0.567, 0.433, 0.000],
+        [0.558, 0.442, 0.000],
+        [0.000, 0.242, 0.758]
+    ],
+    deuteranopia: [
+        [0.625, 0.375, 0.000],
+        [0.700, 0.300, 0.000],
+        [0.000, 0.300, 0.700]
+    ],
+    tritanopia: [
+        [0.950, 0.050, 0.000],
+        [0.000, 0.433, 0.567],
+        [0.000, 0.475, 0.525]
+    ],
+    achromatopsia: [
+        [0.299, 0.587, 0.114],
+        [0.299, 0.587, 0.114],
+        [0.299, 0.587, 0.114]
+    ]
+};
+
+/**
+ * Apply color blindness simulation
+ */
+function simulateColorBlindness(r, g, b, type = 'protanopia') {
+    const matrix = colorBlindnessMatrices[type];
+    
+    if (!matrix) return rgbToHex(r, g, b);
+    
+    const nr = r * matrix[0][0] + g * matrix[0][1] + b * matrix[0][2];
+    const ng = r * matrix[1][0] + g * matrix[1][1] + b * matrix[1][2];
+    const nb = r * matrix[2][0] + g * matrix[2][1] + b * matrix[2][2];
+    
+    return rgbToHex(
+        Math.max(0, Math.min(255, nr)),
+        Math.max(0, Math.min(255, ng)),
+        Math.max(0, Math.min(255, nb))
+    );
+}
+
+/**
+ * Interpolate between two colors in OKLAB space (perceptually uniform)
+ */
+function interpolateColors(colorA, colorB, steps = 5) {
+    const rgbA = hexToRgb(colorA);
+    const rgbB = hexToRgb(colorB);
+    
+    const oklabA = rgbToOklab(rgbA.r, rgbA.g, rgbA.b);
+    const oklabB = rgbToOklab(rgbB.r, rgbB.g, rgbB.b);
+    
+    const colors = [];
+    
+    for (let i = 0; i < steps; i++) {
+        const t = i / (steps - 1);
+        
+        const L = oklabA.L + t * (oklabB.L - oklabA.L);
+        const a = oklabA.a + t * (oklabB.a - oklabA.a);
+        const b = oklabA.b + t * (oklabB.b - oklabA.b);
+        
+        const rgb = oklabToRgb({ L, a, b });
+        colors.push(rgbToHex(rgb.r, rgb.g, rgb.b));
+    }
+    
+    return colors;
+}
+
+/**
+ * Generate smart dark mode colors with WCAG compliance
+ */
+function generateSmartDarkModeColors(baseHex) {
+    const rgb = hexToRgb(baseHex);
+    const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+    
+    // ANALISIS KARAKTER WARNA
+    const isLightColor = hsl.l > 50;
+    const isSaturated = hsl.s > 40;
+    const isWarm = hsl.h >= 0 && hsl.h <= 60 || hsl.h >= 300 && hsl.h <= 360;
+    const isCool = hsl.h >= 120 && hsl.h <= 240;
+    
+    // ===== ALGORITMA BACKGROUND =====
+    // Untuk warna cerah: buat gelap, untuk warna gelap: pertahankan karakter
+    let bgH = hsl.h;
+    let bgS, bgL;
+    
+    if (isLightColor) {
+        // Warna asli terang → buat gelap dengan desaturasi
+        bgS = Math.min(hsl.s * 0.25, 20);
+        bgL = 10 + (hsl.l * 0.1); // 10-15%
+    } else {
+        // Warna asli sudah gelap → sedikit penyesuaian
+        bgS = Math.min(hsl.s * 0.4, 25);
+        bgL = Math.max(8, hsl.l * 0.6); // 40-60% dari lightness asli
+    }
+    
+    // Adjust hue untuk background: sedikit shift untuk warmth/coolness
+    if (isWarm) bgH = (hsl.h + 5) % 360; // Hangat → sedikit orange
+    if (isCool) bgH = (hsl.h - 5 + 360) % 360; // Dingin → sedikit biru
+    
+    // ===== ALGORITMA ACCENT =====
+    let accentH, accentS, accentL;
+    
+    // Hue: pilih berdasarkan teori warna
+    if (isWarm) {
+        accentH = (hsl.h + 180) % 360; // Complementary untuk warna hangat
+    } else if (isCool) {
+        accentH = (hsl.h + 30) % 360; // Analogous untuk warna dingin
+    } else {
+        accentH = (hsl.h + 150) % 360; // Split complementary untuk netral
+    }
+    
+    // Saturation: pastikan cukup vibrant tapi tidak menyakitkan mata
+    accentS = Math.max(60, Math.min(hsl.s * 1.2, 85));
+    
+    // Lightness: optimal untuk readability
+    accentL = isLightColor ? 65 : 75;
+    
+    const bgColor = hslToHex(bgH, bgS, bgL);
+    let accentColor = hslToHex(accentH, accentS, accentL);
+    
+    // ===== VALIDASI KONTRAS WCAG =====
+    const bgLum = getLuminance(...Object.values(hexToRgb(bgColor)));
+    let accentLum = getLuminance(...Object.values(hexToRgb(accentColor)));
+    let ratio = getContrastRatio(bgLum, accentLum);
+    
+    // Iterative adjustment untuk mencapai minimal AA (4.5:1)
+    let attempts = 0;
+    while (ratio < 4.5 && attempts < 10) {
+        // Adjust lightness jika kontras kurang
+        accentL += 5;
+        if (accentL > 90) {
+            // Jika terlalu terang, adjust saturation
+            accentS = Math.max(accentS * 0.9, 40);
+            accentL = 75; // Reset ke tengah
+        }
+        
+        accentColor = hslToHex(accentH, accentS, accentL);
+        accentLum = getLuminance(...Object.values(hexToRgb(accentColor)));
+        ratio = getContrastRatio(bgLum, accentLum);
+        attempts++;
+    }
+    
+    // Jika masih gagal, gunakan fallback yang guaranteed contrast
+    if (ratio < 4.5) {
+        accentColor = hslToHex(accentH, 70, 80); // High contrast fallback
+    }
+    
+    // ===== WARNA TEXT & SURFACE =====
+    // Text color berdasarkan kontras dengan background
+    const textPrimary = getContrastColor(bgColor);
+    const textSecondary = textPrimary === '#FFFFFF' ? 
+        'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)';
+    
+    // Surface colors dengan variasi lightness
+    const surfaceDelta = 8;
+    const surface = hslToHex(bgH, bgS * 0.8, bgL + surfaceDelta);
+    const surfaceVariant = hslToHex(bgH, bgS * 0.6, bgL + (surfaceDelta * 2));
+    
+    return {
+        background: bgColor,
+        accent: accentColor,
+        textPrimary,
+        textSecondary,
+        surface,
+        surfaceVariant,
+        success: hslToHex(120, 70, 60), // Hijau untuk positive actions
+        warning: hslToHex(40, 85, 60),  // Kuning untuk warnings
+        error: hslToHex(0, 75, 60),     // Merah untuk errors
+        info: hslToHex(200, 70, 60),    // Biru untuk info
+        contrastRatio: ratio.toFixed(2)
+    };
+}
+
+/**
+ * Generate multiple dark mode variants
+ */
+function generateDarkModeVariants() {
+    const variants = [];
+    const baseHsl = rgbToHsl(state.rgb.r, state.rgb.g, state.rgb.b);
+    
+    // Variant 1: High Contrast
+    variants.push({
+        name: "High Contrast",
+        colors: generateDarkModeColorsWithSettings(baseHsl, {
+            bgLightness: 5,
+            accentLightness: 85,
+            minContrast: 7
+        })
+    });
+    
+    // Variant 2: Muted
+    variants.push({
+        name: "Muted",
+        colors: generateDarkModeColorsWithSettings(baseHsl, {
+            bgLightness: 15,
+            bgSaturation: baseHsl.s * 0.1,
+            accentSaturation: baseHsl.s * 0.5,
+            minContrast: 4.5
+        })
+    });
+    
+    // Variant 3: True Dark
+    variants.push({
+        name: "True Dark",
+        colors: generateDarkModeColorsWithSettings(baseHsl, {
+            bgLightness: 8,
+            accentHueShift: 0,
+            minContrast: 4.5
+        })
+    });
+    
+    // Tampilkan variants dalam modal atau side panel
+    showVariantsModal(variants);
+}
+
+function generateDarkModeColorsWithSettings(baseHsl, settings = {}) {
+    const {
+        bgLightness = 10,
+        bgSaturation = baseHsl.s * 0.2,
+        accentHueShift = 180,
+        accentLightness = 70,
+        accentSaturation = Math.max(baseHsl.s * 1.2, 60),
+        minContrast = 4.5
+    } = settings;
+
+    // Background color
+    let bgH = (baseHsl.h + (settings.bgHueShift || 0)) % 360;
+    let bgS = Math.min(bgSaturation, 25);
+    let bgL = Math.max(Math.min(bgLightness, 20), 5);
+    const bgColor = hslToHex(bgH, bgS, bgL);
+
+    // Accent color
+    let accentH = (baseHsl.h + accentHueShift) % 360;
+    let accentS = Math.min(accentSaturation, 85);
+    let accentL = accentLightness;
+    let accentColor = hslToHex(accentH, accentS, accentL);
+
+    // Validate contrast
+    let attempts = 0;
+    let ratio = 0;
+    const bgLum = getLuminance(...Object.values(hexToRgb(bgColor)));
+    
+    do {
+        accentL = accentL + 2;
+        if (accentL > 90) {
+            accentS = Math.max(accentS * 0.9, 40);
+            accentL = 70;
+        }
+        accentColor = hslToHex(accentH, accentS, accentL);
+        const accentLum = getLuminance(...Object.values(hexToRgb(accentColor)));
+        ratio = getContrastRatio(bgLum, accentLum);
+        attempts++;
+    } while (ratio < minContrast && attempts < 10);
+
+    return {
+        background: bgColor,
+        accent: accentColor,
+        textPrimary: getContrastColor(bgColor),
+        textSecondary: getContrastColor(bgColor) === '#FFFFFF' ? 
+            'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)',
+        surface: hslToHex(bgH, bgS * 0.8, bgL + 8),
+        surfaceVariant: hslToHex(bgH, bgS * 0.6, bgL + 16),
+        contrastRatio: ratio.toFixed(2)
+    };
+}
+
+function showVariantsModal(variants) {
+    const modalHTML = `
+        <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(5px);">
+            <div style="background: var(--card-bg); border-radius: 16px; padding: 24px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; border: 1px solid var(--card-border);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0;">Dark Mode Variants</h3>
+                    <button onclick="this.closest('div[style*=\"position: fixed\"]').remove()" 
+                            style="background: none; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer;">×</button>
+                </div>
+                <div style="display: grid; gap: 16px;">
+                    ${variants.map((variant, idx) => `
+                        <div style="border: 1px solid var(--card-border); border-radius: 12px; overflow: hidden;">
+                            <div style="background: ${variant.colors.background}; color: ${variant.colors.textPrimary}; padding: 16px; font-weight: 600; display: flex; justify-content: space-between;">
+                                <span>${variant.name}</span>
+                                <span style="font-size: 12px; opacity: 0.8;">${variant.colors.contrastRatio}:1</span>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 16px; background: ${variant.colors.surface};">
+                                <button onclick="applyVariantColors(${idx})" 
+                                        style="background: ${variant.colors.accent}; color: ${getContrastColor(variant.colors.accent)}; border: none; padding: 8px; border-radius: 8px; cursor: pointer; font-size: 12px;">
+                                    Apply
+                                </button>
+                                <button onclick="copyVariantColors(${idx})" 
+                                        style="background: rgba(0,0,0,0.1); color: ${variant.colors.textPrimary}; border: none; padding: 8px; border-radius: 8px; cursor: pointer; font-size: 12px;">
+                                    Copy
+                                </button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Simpan variants untuk digunakan oleh fungsi lain
+    window.currentVariants = variants;
+}
+
+function applyVariantColors(index) {
+    const variant = window.currentVariants[index];
+    const previewBox = document.getElementById('darkPreviewBox');
+    
+    // Update preview dengan warna dari variant
+    previewBox.style.backgroundColor = variant.colors.background;
+    previewBox.style.color = variant.colors.textPrimary;
+    
+    // Hapus modal
+    document.querySelector('div[style*="position: fixed"]').remove();
+    
+    showToast(`Applied ${variant.name} variant`);
+}
+
+function copyVariantColors(index) {
+    const variant = window.currentVariants[index];
+    const css = `/* ${variant.name} Dark Theme */
+:root {
+  --dark-bg: ${variant.colors.background};
+  --dark-surface: ${variant.colors.surface};
+  --dark-surface-variant: ${variant.colors.surfaceVariant};
+  --dark-accent: ${variant.colors.accent};
+  --dark-text: ${variant.colors.textPrimary};
+  --dark-text-secondary: ${variant.colors.textSecondary};
+}`;
+    
+    copyText(css);
+    showToast(`Copied ${variant.name} colors`);
+}
+
+/**
+ * Show contrast analysis modal
+ */
+function showContrastAnalysis() {
+    const darkColors = generateSmartDarkModeColors(state.hex);
+    
+    // Hitung semua kontras yang relevan
+    const contrasts = {
+        accentBg: getContrastRatio(
+            getLuminance(...Object.values(hexToRgb(darkColors.background))),
+            getLuminance(...Object.values(hexToRgb(darkColors.accent)))
+        ),
+        textBg: getContrastRatio(
+            getLuminance(...Object.values(hexToRgb(darkColors.background))),
+            getLuminance(...Object.values(hexToRgb(darkColors.textPrimary)))
+        ),
+        surfaceBg: getContrastRatio(
+            getLuminance(...Object.values(hexToRgb(darkColors.background))),
+            getLuminance(...Object.values(hexToRgb(darkColors.surface)))
+        )
+    };
+    
+    // Buat modal dengan analisis detail
+    const modalHTML = `
+        <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
+            <div style="background: var(--card-bg); padding: 24px; border-radius: 16px; max-width: 400px; width: 90%; max-height: 80vh; overflow-y: auto;">
+                <h3 style="margin: 0 0 16px 0;">Contrast Analysis</h3>
+                
+                <div style="display: grid; gap: 12px;">
+                    ${Object.entries(contrasts).map(([key, ratio]) => {
+                        const status = getWCAGStatus(ratio);
+                        return `
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(0,0,0,0.05); border-radius: 8px;">
+                                <div>
+                                    <div style="font-size: 12px; font-weight: 600; text-transform: capitalize;">${key.replace('Bg', '/BG')}</div>
+                                    <div style="font-size: 20px; font-weight: 800;">${ratio.toFixed(2)}:1</div>
+                                </div>
+                                <div style="background: ${status.color}20; color: ${status.color}; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">
+                                    ${status.level}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+                
+                <button onclick="this.closest('div[style*=\"position: fixed\"]').remove()" 
+                        style="margin-top: 16px; width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; cursor: pointer;">
+                    Close Analysis
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+/**
+ * Generate mood-based color variations using OKLCH
+ */
+function applyMoodAdjustment(baseHex, mood) {
+    const rgb = hexToRgb(baseHex);
+    const oklab = rgbToOklab(rgb.r, rgb.g, rgb.b);
+    const oklch = oklabToOklch(oklab);
+    
+    let newOklch = { ...oklch };
+    
+    switch(mood) {
+        case 'pastel':
+            newOklch.L = Math.min(oklch.L + 0.2, 0.95);
+            newOklch.C = Math.max(oklch.C * 0.3, 0.05);
+            break;
+        case 'neon':
+            newOklch.L = 0.7;
+            newOklch.C = Math.min(oklch.C * 1.5, 0.4);
+            break;
+        case 'earth':
+            newOklch.L = Math.max(oklch.L - 0.1, 0.3);
+            newOklch.C = Math.max(oklch.C * 0.5, 0.08);
+            break;
+        case 'muted':
+            newOklch.L = oklch.L;
+            newOklch.C = oklch.C * 0.4;
+            break;
+        case 'vibrant':
+            newOklch.L = 0.65;
+            newOklch.C = Math.min(oklch.C * 2, 0.45);
+            break;
+        default:
+            return baseHex;
+    }
+    
+    const newOklab = oklchToOklab(newOklch);
+    const newRgb = oklabToRgb(newOklab);
+    
+    return rgbToHex(newRgb.r, newRgb.g, newRgb.b);
+}
+
+// UI UPDATE FUNCTIONS
+// ============================================
+
+/**
+ * Update all UI elements based on current state
+ */
+function updateUI() {
+    try {
+        // Update CSS custom properties
+        document.documentElement.style.setProperty('--current-color', state.hex);
+        
+        // Update color preview dengan efek subtle shadow
+        const rgba = `rgba(${state.rgb.r}, ${state.rgb.g}, ${state.rgb.b}, ${state.alpha})`;
+        preview.style.backgroundColor = rgba;
+        preview.style.boxShadow = `
+            0 10px 40px -10px ${state.hex}80,
+            inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+            inset 0 0 20px rgba(255, 255, 255, 0.1)
+        `;
+        
+        // Update semua komponen
+        updateColorValues();
+        updateContrastChecker();
+        updatePalette();
+        updateHarmonies();
+        updateColorBlindnessSimulation();
+        updateDarkModePreview();
+        updateMixer();
+        
+        // Update ambient glow dengan perhitungan yang lebih presisi
+        const hsl = rgbToHsl(state.rgb.r, state.rgb.g, state.rgb.b);
+        
+        // Hitung opacity berdasarkan saturation dan lightness
+        const saturationFactor = hsl.s / 100;
+        const lightnessFactor = 1 - Math.abs(hsl.l - 50) / 50; // Lebih cerah di tengah
+        const glowOpacity = saturationFactor * lightnessFactor * 0.2;
+        
+        // Update glow opacity via custom property
+        document.documentElement.style.setProperty('--glow-opacity', Math.max(0.05, Math.min(0.3, glowOpacity)).toString());
+        
+        // Update hue rotation untuk efek yang lebih dinamis
+        const hueRotation = (hsl.h / 360 * 180).toFixed(2);
+        document.documentElement.style.setProperty('--hue-rotate', `${hueRotation}deg`);
+        
+        // Update color halo animation speed berdasarkan saturation
+        const halo = document.querySelector('.color-halo');
+        if (halo) {
+            const animationSpeed = 20 + (saturationFactor * 10); // 20s to 30s
+            halo.style.animationDuration = `${animationSpeed}s`;
+        }
+        
+        // Update input warna picker
+        picker.value = state.hex;
+        hexInput.value = state.hex.replace('#', '').toUpperCase();
+        
+        // Tambahkan efek smooth transition untuk semua perubahan
+        document.documentElement.classList.add('color-transitioning');
+        setTimeout(() => {
+            document.documentElement.classList.remove('color-transitioning');
+        }, 300);
+        
+        console.log(`UI Updated: ${state.hex}, HSL: ${hsl.h},${hsl.s},${hsl.l}`);
+        
+    } catch (error) {
+        console.error('Error in updateUI:', error);
+        // Fallback: tetap update warna dasar
+        document.documentElement.style.setProperty('--current-color', state.hex);
+        preview.style.backgroundColor = state.hex;
+    }
+}
+
+/**
+ * Update all color format values
+ */
+function updateColorValues() {
+    const alphaHex = Math.round(state.alpha * 255).toString(16).padStart(2, '0');
+    
+    const formats = [
+        { 
+            label: 'HEX', 
+            value: state.alpha === 1 ? 
+                state.hex.toUpperCase() : 
+                state.hex.toUpperCase() + alphaHex 
+        },
+        { 
+            label: 'RGB', 
+            value: `rgb(${state.rgb.r} ${state.rgb.g} ${state.rgb.b} / ${(state.alpha * 100).toFixed(0)}%)`
+        },
+        { 
+            label: 'HSL', 
+            value: `hsl(${state.hsl.h.toFixed(1)} ${state.hsl.s.toFixed(1)}% ${state.hsl.l.toFixed(1)}% / ${(state.alpha * 100).toFixed(0)}%)`
+        },
+        { 
+            label: 'OKLCH', 
+            value: `oklch(${state.oklch.L.toFixed(3)} ${state.oklch.C.toFixed(3)} ${state.oklch.h.toFixed(1)} / ${state.alpha.toFixed(2)})`
+        },
+        { 
+            label: 'OKLAB', 
+            value: `oklab(${state.oklab.L.toFixed(3)} ${state.oklab.a.toFixed(3)} ${state.oklab.b.toFixed(3)} / ${state.alpha.toFixed(2)})`
+        },
+        { 
+            label: 'LAB', 
+            value: (() => {
+                const lab = rgbToLab(state.rgb.r, state.rgb.g, state.rgb.b);
+                return `lab(${lab.L.toFixed(1)} ${lab.a.toFixed(1)} ${lab.b.toFixed(1)})`;
+            })()
+        },
+        { 
+            label: 'HWB', 
+            value: (() => {
+                const hwb = rgbToHwb(state.rgb.r, state.rgb.g, state.rgb.b);
+                return `hwb(${hwb.h} ${hwb.w}% ${hwb.b}%)`;
+            })()
+        },
+        { 
+            label: 'CSS', 
+            value: state.alpha === 1 ? 
+                state.hex.toUpperCase() : 
+                `rgba(${state.rgb.r}, ${state.rgb.g}, ${state.rgb.b}, ${state.alpha.toFixed(2)})`
+        }
+    ];
+
+    // Clear and rebuild results
+    resultsContainer.innerHTML = '';
+    
+    formats.forEach(format => {
+        const item = document.createElement('div');
+        item.className = 'result-item';
+        item.innerHTML = `
+            <div class="result-info">
+                <span class="result-label">${format.label}</span>
+                <span class="result-value">${format.value}</span>
+            </div>
+            <button class="copy-btn" onclick="copyText('${format.value.replace(/'/g, "\\'")}')" 
+                    aria-label="Copy ${format.label}" 
+                    data-color-format="${format.label}">
+                <i class="ph ph-copy" style="font-size: 18px;"></i>
+            </button>
+        `;
+        resultsContainer.appendChild(item);
+    });
+}
+
+/**
+ * Update contrast checker
+ */
+function updateContrastChecker() {
+    const luminance = getLuminance(state.rgb.r, state.rgb.g, state.rgb.b);
+    const whiteLum = getLuminance(255, 255, 255);
+    const blackLum = getLuminance(0, 0, 0);
+    
+    const ratioWhite = getContrastRatio(luminance, whiteLum);
+    const ratioBlack = getContrastRatio(luminance, blackLum);
+    
+    const statusWhite = getWCAGStatus(ratioWhite);
+    const statusBlack = getWCAGStatus(ratioBlack);
+    
+    // Update white contrast display
+    const whiteDiv = document.getElementById('whiteContrast');
+    whiteDiv.style.backgroundColor = '#FFFFFF';
+    whiteDiv.style.color = state.hex;
+    whiteDiv.querySelector('.score').innerText = ratioWhite.toFixed(2);
+    whiteDiv.querySelector('.badge').innerText = statusWhite.label;
+    whiteDiv.querySelector('.badge').style.color = statusWhite.color;
+    whiteDiv.querySelector('.badge').style.backgroundColor = `${statusWhite.color}15`;
+    
+    // Update black contrast display
+    const blackDiv = document.getElementById('blackContrast');
+    blackDiv.style.backgroundColor = '#000000';
+    blackDiv.style.color = state.hex;
+    blackDiv.querySelector('.score').innerText = ratioBlack.toFixed(2);
+    blackDiv.querySelector('.badge').innerText = statusBlack.label;
+    blackDiv.querySelector('.badge').style.color = statusBlack.color;
+    blackDiv.querySelector('.badge').style.backgroundColor = `${statusBlack.color}15`;
+}
+
+/**
+ * Update tints and shades palette
+ */
+function updatePalette() {
+    const tints = generateTints(state.rgb.r, state.rgb.g, state.rgb.b);
+    const shades = generateShades(state.rgb.r, state.rgb.g, state.rgb.b);
+    
+    tintsRow.innerHTML = '';
+    shadesRow.innerHTML = '';
+    
+    tints.forEach(hex => {
+        const chip = document.createElement('div');
+        chip.className = 'palette-chip';
+        chip.style.backgroundColor = hex;
+        chip.style.color = getContrastColor(hex);
+        chip.innerHTML = `<span>${hex}</span>`;
+        chip.addEventListener('click', () => copyText(hex));
+        tintsRow.appendChild(chip);
+    });
+    
+    shades.forEach(hex => {
+        const chip = document.createElement('div');
+        chip.className = 'palette-chip';
+        chip.style.backgroundColor = hex;
+        chip.style.color = getContrastColor(hex);
+        chip.innerHTML = `<span>${hex}</span>`;
+        chip.addEventListener('click', () => copyText(hex));
+        shadesRow.appendChild(chip);
+    });
+}
+
+/**
+ * Update color harmonies display
+ */
+function updateHarmonies() {
+    const harmonies = generateHarmonies(state.hsl.h, state.hsl.s, state.hsl.l);
+    const container = document.getElementById('harmonyContainer');
+    
+    // Show first 3 harmonies for space
+    const displayHarmonies = harmonies.slice(0, 3);
+    
+    let html = '';
+    displayHarmonies.forEach(harmony => {
+        harmony.colors.forEach((color, index) => {
+            const isBase = index === harmony.baseIndex;
+            html += `
+                <div class="result-item" onclick="copyText('${color}')" style="cursor:pointer">
+                    <div style="display:flex; align-items:center; gap:12px">
+                        <div style="width:32px; height:32px; border-radius:8px; background:${color}; 
+                              box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: ${isBase ? '2px solid var(--accent)' : 'none'}"></div>
+                        <div class="result-info">
+                            <span class="result-label">${harmony.name} ${index + 1}</span>
+                            <span class="result-value">${color}</span>
+                        </div>
+                    </div>
+                    <button class="copy-btn">
+                        <i class="ph ph-copy"></i>
+                    </button>
+                </div>
+            `;
+        });
+    });
+    
+    container.innerHTML = html;
+}
+
+/**
+ * Update color blindness simulation
+ */
+function updateColorBlindnessSimulation() {
+    const types = [
+        { key: 'protanopia', label: 'Protanopia', description: 'Red-blind' },
+        { key: 'deuteranopia', label: 'Deuteranopia', description: 'Green-blind' },
+        { key: 'tritanopia', label: 'Tritanopia', description: 'Blue-blind' },
+        { key: 'achromatopsia', label: 'Achromatopsia', description: 'Total color blindness' }
+    ];
+    
+    let html = '';
+    types.forEach(type => {
+        const simulatedHex = simulateColorBlindness(
+            state.rgb.r, 
+            state.rgb.g, 
+            state.rgb.b, 
+            type.key
+        );
+        
+        html += `
+            <div class="result-item">
+                <div style="display:flex; align-items:center; gap:12px">
+                    <div style="width:32px; height:32px; border-radius:50%; background:${simulatedHex}; 
+                          border: 2px solid rgba(0,0,0,0.05)"></div>
+                    <div class="result-info">
+                        <span class="result-label">${type.label}</span>
+                        <span class="result-value" style="font-size: 11px; opacity: 0.7;">${type.description}</span>
+                    </div>
+                </div>
+                <div class="result-value" style="font-weight:700">${simulatedHex}</div>
+            </div>
+        `;
+    });
+    
+    document.getElementById('visionContainer').innerHTML = html;
+}
+
+/**
+ * Update dark mode preview
+ */
+function updateDarkModePreview() {
+    const darkColors = generateSmartDarkModeColors(state.hex);
+    const previewBox = document.getElementById('darkPreviewBox');
+    const header = document.querySelector('#darkPreviewHeader');
+    const content = document.querySelector('#darkPreviewContent');
+    const accentBtn = document.getElementById('darkPreviewAccent');
+    const contrastScore = document.getElementById('darkContrastScore');
+    const wcagLabel = document.getElementById('darkWCAGLabel');
+    
+    // Update semua elemen dengan warna dark mode
+    previewBox.style.backgroundColor = darkColors.background;
+    previewBox.style.color = darkColors.textPrimary;
+    
+    if (header) {
+        header.style.backgroundColor = darkColors.surface;
+        header.style.color = darkColors.textPrimary;
+    }
+    
+    if (content) {
+        content.style.backgroundColor = darkColors.background;
+        content.style.color = darkColors.textPrimary;
+    }
+    
+    // Update accent button
+    accentBtn.style.backgroundColor = darkColors.accent;
+    accentBtn.style.color = getContrastColor(darkColors.accent);
+    
+    // Hitung kontras dan update badge
+    const bgLum = getLuminance(...Object.values(hexToRgb(darkColors.background)));
+    const accentLum = getLuminance(...Object.values(hexToRgb(darkColors.accent)));
+    const ratio = getContrastRatio(bgLum, accentLum);
+    const status = getWCAGStatus(ratio);
+    
+    // Update contrast score badge
+    contrastScore.textContent = `WCAG ${ratio.toFixed(1)}:1`;
+    contrastScore.style.color = status.color;
+    contrastScore.style.backgroundColor = `${status.color}20`;
+    
+    // Update WCAG label
+    wcagLabel.textContent = status.level;
+    wcagLabel.style.color = status.color;
+    
+    // Tambahkan tooltip untuk informasi detail
+    accentBtn.title = `Contrast Ratio: ${ratio.toFixed(2)}:1 (${status.level})`;
+    
+    // Update click handler untuk copy accent color
+    accentBtn.onclick = () => {
+        copyText(darkColors.accent);
+        showToast(`Dark accent ${darkColors.accent} copied!`);
+    };
+    
+    // Tambahkan visual feedback untuk kontras
+    if (ratio >= 7) {
+        accentBtn.style.boxShadow = `0 0 0 2px ${status.color}40`;
+    } else if (ratio >= 4.5) {
+        accentBtn.style.boxShadow = `0 0 0 1px ${status.color}40`;
+    } else {
+        accentBtn.style.boxShadow = `inset 0 0 0 1px ${status.color}40`;
+    }
+}
+
+/**
+ * Copy all dark mode colors to clipboard
+ */
+function copyDarkModeColors() {
+    const darkColors = generateSmartDarkModeColors(state.hex);
+    
+    const css = `/* Dark Mode Theme for ${state.hex} */
+:root {
+  --dark-bg: ${darkColors.background};
+  --dark-surface: ${darkColors.surface};
+  --dark-surface-variant: ${darkColors.surfaceVariant};
+  --dark-accent: ${darkColors.accent};
+  --dark-text: ${darkColors.textPrimary};
+  --dark-text-secondary: ${darkColors.textSecondary};
+  --dark-success: ${darkColors.success};
+  --dark-warning: ${darkColors.warning};
+  --dark-error: ${darkColors.error};
+  --dark-info: ${darkColors.info};
+}`;
+    
+    copyText(css);
+    showToast('Dark mode colors copied!');
+}
+
+// ===== DARK MODE FUNCTIONS =====
+
+let activeDarkTheme = null;
+
+/**
+ * Apply dark mode to preview (Visual feedback)
+ */
+function applyDarkModePreview() {
+    const darkColors = generateSmartDarkModeColors(state.hex);
+    
+    // 1. Apply to preview elements
+    const previewBox = document.getElementById('darkPreviewBox');
+    
+    // Update background
+    previewBox.style.backgroundColor = darkColors.background;
+    previewBox.style.color = darkColors.textPrimary;
+    
+    // Find and update all preview elements
+    const elementsToUpdate = {
+        '#darkPreviewHeader': { bg: darkColors.surface, color: darkColors.textPrimary },
+        '#darkPreviewContent': { bg: darkColors.background, color: darkColors.textPrimary },
+        '#darkPreviewAccent': { bg: darkColors.accent, color: getContrastColor(darkColors.accent) }
+    };
+    
+    Object.keys(elementsToUpdate).forEach(selector => {
+        const el = previewBox.querySelector(selector);
+        if (el) {
+            if (elementsToUpdate[selector].bg) {
+                el.style.backgroundColor = elementsToUpdate[selector].bg;
+            }
+            el.style.color = elementsToUpdate[selector].color || 'inherit';
+        }
+    });
+    
+    // 2. Visual feedback
+    previewBox.classList.add('theme-applied');
+    setTimeout(() => previewBox.classList.remove('theme-applied'), 1000);
+    
+    // 3. Update status
+    updateThemeStatus(darkColors);
+    
+    showToast('✅ Dark theme applied to preview');
+}
+
+function updateThemeStatus(colors) {
+    const themeStatus = document.getElementById('themeStatus');
+    themeStatus.style.display = 'block';
+    themeStatus.style.background = colors.surface;
+    themeStatus.style.color = colors.textPrimary;
+    document.getElementById('themeBaseColor').textContent = state.hex;
+}
+
+/**
+ * Apply dark mode to entire app
+ */
+function applyDarkModeToApp(colors = null) {
+    // Gunakan colors jika diberikan, atau generate baru
+    const darkColors = colors || generateSmartDarkModeColors(state.hex);
+    activeDarkTheme = darkColors;
+    
+    // 1. Save to localStorage
+    localStorage.setItem('chroma_active_theme', JSON.stringify({
+        colors: darkColors,
+        baseColor: state.hex,
+        timestamp: new Date().toISOString()
+    }));
+    
+    // 2. Apply CSS variables secara langsung
+    const root = document.documentElement;
+    root.style.setProperty('--bg-color', darkColors.background);
+    root.style.setProperty('--card-bg', darkColors.surface);
+    root.style.setProperty('--card-border', darkColors.surfaceVariant);
+    root.style.setProperty('--text-primary', darkColors.textPrimary);
+    root.style.setProperty('--text-secondary', darkColors.textSecondary);
+    root.style.setProperty('--accent', darkColors.accent);
+    
+    // 3. Add dark mode class to body
+    document.body.classList.add('dark-theme-applied');
+    
+    // 4. Show active theme indicator
+    showThemeIndicator(darkColors);
+    
+    showToast('🎨 Dark theme applied to entire app!');
+}
+
+/**
+ * Remove dark theme
+ */
+function removeDarkTheme() {
+    // Remove CSS variables
+    const root = document.documentElement;
+    root.style.removeProperty('--bg-color');
+    root.style.removeProperty('--card-bg');
+    root.style.removeProperty('--card-border');
+    root.style.removeProperty('--text-primary');
+    root.style.removeProperty('--text-secondary');
+    root.style.removeProperty('--accent');
+    
+    // Remove classes
+    document.body.classList.remove('dark-theme-applied');
+    
+    // Remove indicator
+    document.getElementById('themeActiveIndicator')?.remove();
+    
+    // Clear localStorage
+    localStorage.removeItem('chroma_active_theme');
+    activeDarkTheme = null;
+    
+    showToast('Dark theme removed');
+}
+
+/**
+ * Show theme active indicator
+ */
+function showThemeIndicator(colors) {
+    // Remove existing indicator
+    document.getElementById('themeActiveIndicator')?.remove();
+    
+    const indicator = document.createElement('div');
+    indicator.id = 'themeActiveIndicator';
+    indicator.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="width: 12px; height: 12px; border-radius: 50%; background: ${colors.accent};"></div>
+            <span>Dark Theme Active</span>
+            <button onclick="removeDarkTheme()" style="margin-left: 8px; background: none; border: none; color: inherit; cursor: pointer;">
+                <i class="ph ph-x" style="font-size: 12px;"></i>
+            </button>
+        </div>
+    `;
+    
+    indicator.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${colors.surface};
+        color: ${colors.textPrimary};
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        z-index: 10000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        backdrop-filter: blur(10px);
+        border: 1px solid ${colors.surfaceVariant};
+        cursor: move;
+        user-select: none;
+    `;
+    
+    // Make it draggable
+    makeDraggable(indicator);
+    
+    document.body.appendChild(indicator);
+}
+
+function makeDraggable(element) {
+    let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+    
+    element.onmousedown = dragMouseDown;
+    
+    function dragMouseDown(e) {
+        e = e || window.event;
+        e.preventDefault();
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        document.onmouseup = closeDragElement;
+        document.onmousemove = elementDrag;
+    }
+    
+    function elementDrag(e) {
+        e = e || window.event;
+        e.preventDefault();
+        pos1 = pos3 - e.clientX;
+        pos2 = pos4 - e.clientY;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        element.style.top = (element.offsetTop - pos2) + "px";
+        element.style.left = (element.offsetLeft - pos1) + "px";
+    }
+    
+    function closeDragElement() {
+        document.onmouseup = null;
+        document.onmousemove = null;
+    }
+}
+
+// ===== INITIALIZATION =====
+function initDarkMode() {
+    // Load saved theme
+    const savedTheme = localStorage.getItem('chroma_active_theme');
+    if (savedTheme) {
+        try {
+            const themeData = JSON.parse(savedTheme);
+            applyDarkModeToApp(themeData.colors);
+        } catch (e) {
+            console.error('Error loading saved theme:', e);
+        }
+    }
+}
+
+/**
+ * Show detailed contrast analysis
+ */
+function showContrastAnalysis() {
+    const darkColors = generateSmartDarkModeColors(state.hex);
+    const bgLum = getLuminance(...Object.values(hexToRgb(darkColors.background)));
+    const accentLum = getLuminance(...Object.values(hexToRgb(darkColors.accent)));
+    const textLum = getLuminance(...Object.values(hexToRgb(darkColors.textPrimary)));
+    
+    const ratioAccent = getContrastRatio(bgLum, accentLum);
+    const ratioText = getContrastRatio(bgLum, textLum);
+    
+    const analysis = `
+Contrast Analysis:
+• Background: ${darkColors.background}
+• Accent: ${darkColors.accent}
+• Text: ${darkColors.textPrimary}
+
+Contrast Ratios:
+• Accent/Background: ${ratioAccent.toFixed(2)}:1 ${getWCAGStatus(ratioAccent).level}
+• Text/Background: ${ratioText.toFixed(2)}:1 ${getWCAGStatus(ratioText).level}
+
+WCAG Compliance:
+• Normal Text: ${ratioText >= 4.5 ? '✓ PASS (AA)' : '✗ FAIL'}
+• Large Text: ${ratioText >= 3 ? '✓ PASS (AA)' : '✗ FAIL'}
+• Graphics: ${ratioAccent >= 3 ? '✓ PASS' : '✗ FAIL'}
+    `;
+    
+    alert(analysis);
+}
+
+/**
+ * Update color mixer
+ */
+function updateMixer() {
+    const colorB = document.getElementById('mixerColorB').value;
+    const steps = parseInt(document.getElementById('mixerSteps').value);
+    document.getElementById('stepsLabel').textContent = `${steps} Steps`;
+    
+    const interpolated = interpolateColors(state.hex, colorB, steps);
+    const container = document.getElementById('mixerResult');
+    
+    container.innerHTML = '';
+    interpolated.forEach((hex, index) => {
+        const chip = document.createElement('div');
+        chip.className = 'palette-chip';
+        chip.style.backgroundColor = hex;
+        chip.style.color = getContrastColor(hex);
+        chip.innerHTML = `<span>${hex}</span>`;
+        chip.addEventListener('click', () => copyText(hex));
+        container.appendChild(chip);
+    });
+}
+
+// LIBRARY FUNCTIONS
+// ============================================
+
+/**
+ * Update library UI
+ */
+function updateLibraryUI() {
+    const container = document.getElementById('libraryContainer');
+    
+    if (savedColors.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; width: 100%; padding: 20px;">
+                <i class="ph ph-palette" style="font-size: 24px; opacity: 0.3; display: block; margin-bottom: 8px;"></i>
+                <span style="font-size: 12px; color: var(--text-secondary); opacity: 0.6;">
+                    No saved colors yet. Click "SAVE CURRENT" to start your library.
+                </span>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = savedColors.map((hex, index) => `
+        <div class="library-chip" style="background: ${hex}" 
+             onclick="selectFromLibrary('${hex}')"
+             title="${hex} (Click to select)">
+            <div class="delete-hint" onclick="removeFromLibrary('${hex}', event)">
+                <i class="ph ph-x" style="font-size: 10px;"></i>
+            </div>
+            <span style="position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); 
+                  font-size: 9px; font-weight: 600; color: ${getContrastColor(hex)}; opacity: 0.8;">
+                ${index + 1}
+            </span>
+        </div>
+    `).join('');
+}
+
+/**
+ * Save current color to library
+ */
+function saveToLibrary() {
+    if (savedColors.includes(state.hex)) {
+        showToast('Color already in library!');
+        return;
+    }
+    
+    savedColors.push(state.hex);
+    
+    // Limit to 20 colors
+    if (savedColors.length > 20) {
+        savedColors.shift();
+    }
+    
+    localStorage.setItem('chroma_library', JSON.stringify(savedColors));
+    updateLibraryUI();
+    showToast('Color saved to library!');
+}
+
+/**
+ * Select color from library
+ */
+function selectFromLibrary(hex) {
+    updateStateFromHex(hex);
+    updateUI();
+    showToast(`Selected ${hex}`);
+}
+
+/**
+ * Remove color from library
+ */
+function removeFromLibrary(hex, event) {
+    event.stopPropagation();
+    
+    if (confirm(`Remove ${hex} from library?`)) {
+        savedColors = savedColors.filter(color => color !== hex);
+        localStorage.setItem('chroma_library', JSON.stringify(savedColors));
+        updateLibraryUI();
+        showToast('Color removed from library');
+    }
+}
+
+/**
+ * Clear entire library
+ */
+function clearLibrary() {
+    if (savedColors.length === 0) {
+        showToast('Library is already empty');
+        return;
+    }
+    
+    if (confirm(`Clear all ${savedColors.length} saved colors? This cannot be undone.`)) {
+        savedColors = [];
+        localStorage.removeItem('chroma_library');
+        updateLibraryUI();
+        showToast('Library cleared');
+    }
+}
+
+/**
+ * Export library as CSS variables
+ */
+function exportLibraryCSS() {
+    if (savedColors.length === 0) {
+        showToast('Library is empty!');
+        return;
+    }
+    
+    let css = `/* Chroma Pro Color Library - Generated on ${new Date().toLocaleDateString()} */\n`;
+    css += `:root {\n`;
+    
+    savedColors.forEach((hex, index) => {
+        const rgb = hexToRgb(hex);
+        css += `  --chroma-color-${index + 1}: ${hex};\n`;
+        css += `  --chroma-color-${index + 1}-rgb: ${rgb.r}, ${rgb.g}, ${rgb.b};\n`;
+    });
+    
+    css += `}\n\n/* Usage: var(--chroma-color-1) */`;
+    
+    copyText(css);
+    showToast('CSS variables copied to clipboard!');
+}
+
+// EXPORT FUNCTIONS
+// ============================================
+
+/**
+ * Export in various formats
+ */
+function exportFormat(format) {
+    let content = '';
+    
+    switch(format) {
+        case 'tailwind':
+            const tailwindName = state.hex.replace('#', '').toLowerCase();
+            content = `// tailwind.config.js\nexport default {
+  theme: {
+    extend: {
+      colors: {
+        'chroma': '${state.hex}',
+        'chroma-dark': '${generateShades(state.rgb.r, state.rgb.g, state.rgb.b, 1)[0]}',
+        'chroma-light': '${generateTints(state.rgb.r, state.rgb.g, state.rgb.b, 1)[0]}'
+      }
+    }
+  }
+}`;
+            break;
+            
+        case 'json':
+            content = JSON.stringify({
+                color: state.hex,
+                rgb: state.rgb,
+                hsl: state.hsl,
+                oklab: state.oklab,
+                oklch: state.oklch,
+                contrasts: {
+                    onWhite: getContrastRatio(
+                        getLuminance(state.rgb.r, state.rgb.g, state.rgb.b),
+                        getLuminance(255, 255, 255)
+                    ),
+                    onBlack: getContrastRatio(
+                        getLuminance(state.rgb.r, state.rgb.g, state.rgb.b),
+                        getLuminance(0, 0, 0)
+                    )
+                },
+                tints: generateTints(state.rgb.r, state.rgb.g, state.rgb.b),
+                shades: generateShades(state.rgb.r, state.rgb.g, state.rgb.b)
+            }, null, 2);
+            break;
+            
+        case 'swift':
+            const swiftRGB = `(${state.rgb.r/255}, ${state.rgb.g/255}, ${state.rgb.b/255})`;
+            content = `// SwiftUI Color Extension
+import SwiftUI
+
+extension Color {
+    static let chromaPrimary = Color(red: ${swiftRGB})
+    static let chromaSecondary = Color("${state.hex}")
+    
+    // For UIKit
+    static var chromaUIKit: UIColor {
+        UIColor(red: ${state.rgb.r/255}, green: ${state.rgb.g/255}, blue: ${state.rgb.b/255}, alpha: 1.0)
+    }
+}`;
+            break;
+            
+        case 'kotlin':
+            const androidHex = state.hex.replace('#', '#FF');
+            content = `<!-- colors.xml -->
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="chroma_primary">${androidHex}</color>
+    <color name="chroma_dark">${generateShades(state.rgb.r, state.rgb.g, state.rgb.b, 1)[0].replace('#', '#FF')}</color>
+    <color name="chroma_light">${generateTints(state.rgb.r, state.rgb.g, state.rgb.b, 1)[0].replace('#', '#FF')}</color>
+</resources>
+
+// Compose Theme
+object ChromaColors {
+    val primary = Color(0x${state.hex.replace('#', '')})
+    val dark = Color(0x${generateShades(state.rgb.r, state.rgb.g, state.rgb.b, 1)[0].replace('#', '')})
+    val light = Color(0x${generateTints(state.rgb.r, state.rgb.g, state.rgb.b, 1)[0].replace('#', '')})
+}`;
+            break;
+            
+        case 'css':
+            const cssColors = generateSmartDarkModeColors(state.hex); // ← PERBAIKI DI SINI
+            content = `/* CSS Custom Properties for ${state.hex} */
+:root {
+  /* Light Theme */
+  --color-primary: ${state.hex};
+  --color-primary-rgb: ${state.rgb.r}, ${state.rgb.g}, ${state.rgb.b};
+  
+  /* Tints */
+  --color-tint-100: ${generateTints(state.rgb.r, state.rgb.g, state.rgb.b, 5)[4]};
+  --color-tint-200: ${generateTints(state.rgb.r, state.rgb.g, state.rgb.b, 5)[3]};
+  --color-tint-300: ${generateTints(state.rgb.r, state.rgb.g, state.rgb.b, 5)[2]};
+  --color-tint-400: ${generateTints(state.rgb.r, state.rgb.g, state.rgb.b, 5)[1]};
+  --color-tint-500: ${generateTints(state.rgb.r, state.rgb.g, state.rgb.b, 5)[0]};
+  
+  /* Shades */
+  --color-shade-100: ${generateShades(state.rgb.r, state.rgb.g, state.rgb.b, 5)[0]};
+  --color-shade-200: ${generateShades(state.rgb.r, state.rgb.g, state.rgb.b, 5)[1]};
+  --color-shade-300: ${generateShades(state.rgb.r, state.rgb.g, state.rgb.b, 5)[2]};
+  --color-shade-400: ${generateShades(state.rgb.r, state.rgb.g, state.rgb.b, 5)[3]};
+  --color-shade-500: ${generateShades(state.rgb.r, state.rgb.g, state.rgb.b, 5)[4]};
+}
+
+/* Dark Theme */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-primary: ${cssColors.accent};
+    --color-background: ${cssColors.background};
+    --color-surface: ${cssColors.surface};
+  }
+}`;
+            break;
+    }
+    
+    copyText(content);
+    showToast(`Exported as ${format.toUpperCase()}!`);
+}
+
+/**
+ * Download palette as PNG
+ */
+function downloadPalette() {
+    const element = document.querySelector('.palette-container');
+    
+    // Add watermark
+    const watermark = document.createElement('div');
+    watermark.style.cssText = `
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        font-size: 10px;
+        color: rgba(0,0,0,0.3);
+        font-family: -apple-system, sans-serif;
+    `;
+    watermark.textContent = `Chroma Pro • ${state.hex}`;
+    element.appendChild(watermark);
+    
+    html2canvas(element, {
+        backgroundColor: null,
+        scale: 2,
+        logging: false,
+        useCORS: true
+    }).then(canvas => {
+        // Remove watermark
+        element.removeChild(watermark);
+        
+        // Create download link
+        const link = document.createElement('a');
+        link.download = `chroma-palette-${state.hex.replace('#', '')}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        
+        showToast('Palette image downloaded!');
+    });
+}
+
+// IMAGE PICKER FUNCTIONS
+// ============================================
+
+/**
+ * Handle image upload for color picking
+ */
+function initImagePicker() {
+    const imageLoader = document.getElementById('imageLoader');
+    const canvasHint = document.getElementById('canvasHint');
+    
+    imageLoader.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const img = new Image();
+            img.onload = function() {
+                // Calculate dimensions to fit canvas
+                const maxWidth = 400;
+                const maxHeight = 300;
+                let width = img.width;
+                let height = img.height;
+                
+                if (width > maxWidth) {
+                    height = (maxWidth / width) * height;
+                    width = maxWidth;
+                }
+                
+                if (height > maxHeight) {
+                    width = (maxHeight / height) * width;
+                    height = maxHeight;
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                canvas.style.display = 'block';
+                canvasHint.style.display = 'block';
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+    
+    // Add click listener to pick color from canvas
+    canvas.addEventListener('click', function(e) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
+        
+        const pixel = ctx.getImageData(x, y, 1, 1).data;
+        const hex = rgbToHex(pixel[0], pixel[1], pixel[2]);
+        
+        updateStateFromHex(hex);
+        updateUI();
+        
+        // Add visual feedback
+        canvas.style.boxShadow = `0 0 0 4px ${hex}40`;
+        setTimeout(() => {
+            canvas.style.boxShadow = '';
+        }, 300);
+        
+        showToast(`Picked ${hex} from image`);
+    });
+}
+
+// UTILITY FUNCTIONS
+// ============================================
+
+/**
+ * Update state from HEX value
+ */
+function updateStateFromHex(hex) {
+    try {
+        const rgb = hexToRgb(hex);
+        
+        // JIKA RGB NULL (Input tidak valid), JANGAN LANJUTKAN UPDATE
+        if (!rgb) return; 
+
+        state.hex = hex.startsWith('#') ? hex : '#' + hex;
+        state.rgb = rgb;
+        state.hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+        
+        const lab = rgbToLab(rgb.r, rgb.g, rgb.b);
+        state.oklch = labToOklch(lab.l, lab.a, lab.b);
+        
+        // Sinkronisasi warna picker (input type color)
+        // Gunakan format 6 digit standar agar picker tidak error
+        if (state.hex.length === 7) {
+            document.getElementById('colorPicker').value = state.hex;
+        }
+    } catch (error) {
+        console.warn("Input warna tidak valid, menunggu input yang benar...");
+    }
+}
+
+
+/**
+ * Copy text to clipboard with toast notification
+ */
+function copyText(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('Copied to clipboard');
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+        showToast('Failed to copy');
+    });
+}
+
+/**
+ * Show toast notification
+ */
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    const toastSpan = toast.querySelector('span');
+    
+    toastSpan.textContent = message;
+    toast.classList.add('show');
+    
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 2000);
+}
+
+/**
+ * Apply mood transformation
+ */
+function applyMood(mood) {
+    const newHex = applyMoodAdjustment(state.hex, mood);
+    updateStateFromHex(newHex);
+    updateUI();
+    showToast(`Applied ${mood} mood`);
+}
+
+// INITIALIZATION
+// ============================================
+
+/**
+ * Initialize the application
+ */
+function init() {
+    const hexInput = document.getElementById('hexInput');
+
+    // 1. FILTER: Hanya izinkan karakter HEX yang valid saat mengetik
+    hexInput.addEventListener('keypress', (e) => {
+        const allowedChars = /[0-9A-Fa-f#]/;
+        // Izinkan navigasi seperti Backspace, Arrow, Enter, dll (untuk browser berbeda)
+        if (!allowedChars.test(e.key) && e.key.length === 1) {
+            e.preventDefault();
+        }
+    });
+
+    // 2. LOGIKA UTAMA & VISUAL: Gabungkan semua logika input di sini
+    hexInput.addEventListener('input', (e) => {
+        let value = e.target.value.replace(/[^0-9A-Fa-f]/g, ''); // Bersihkan karakter ilegal
+        if (value.length > 6) value = value.slice(0, 6); // Batasi 6 karakter
+        
+        // Update tampilan input agar selalu Uppercase
+        hexInput.value = value.toUpperCase();
+
+        // Validasi Visual: Jika panjangnya bukan 6, beri warna border merah
+        if (value.length > 0 && value.length < 6) {
+            hexInput.style.borderColor = 'rgba(255, 0, 0, 0.5)';
+        } else {
+            hexInput.style.borderColor = 'var(--card-border)';
+        }
+
+        // Jika sudah lengkap 6 digit, update seluruh aplikasi
+        if (value.length === 6) {
+            updateStateFromHex(`#${value}`);
+            updateUI();
+        }
+    });
+
+    // 3. AUTO-COMPLETE: Jika pengguna keluar dari kolom tapi kurang dari 6 digit
+    hexInput.addEventListener('blur', () => {
+        if (hexInput.value.length > 0 && hexInput.value.length < 6) {
+            hexInput.value = hexInput.value.padEnd(6, '0');
+            updateStateFromHex(`#${hexInput.value}`);
+            updateUI();
+            hexInput.style.borderColor = 'var(--card-border)';
+        }
+    });
+
+    // --- INISIALISASI LAINNYA ---
+    initImagePicker();
+    updateLibraryUI();
+    
+    picker.addEventListener('input', (e) => {
+        updateStateFromHex(e.target.value);
+        updateUI();
+    });
+    
+    alphaInput.addEventListener('input', (e) => {
+        state.alpha = e.target.value / 100;
+        alphaValueText.textContent = `${e.target.value}%`;
+        updateUI();
+    });
+    
+    document.getElementById('mixerColorB').addEventListener('input', updateMixer);
+    document.getElementById('mixerSteps').addEventListener('input', updateMixer);
+    
+    updateUI();
+    initDarkMode();
+    
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey || e.metaKey) {
+            switch(e.key.toLowerCase()) {
+                case 's': e.preventDefault(); saveToLibrary(); break;
+                case 'd': e.preventDefault(); downloadPalette(); break;
+                case 'c': 
+                    if (!e.altKey) { e.preventDefault(); copyText(state.hex); } 
+                    break;
+            }
+        }
+    });
+    
+    console.log('Chroma Pro initialized with advanced color engine');
+}
+
+// ============================================
+// TERRA IDE INTEGRATION MODULE
+// ============================================
+
+(function() {
+    // Tunggu sampai Chroma Lab selesai load
+    let integrationInitialized = false;
+    
+    function initTerraIDEIntegration() {
+        if (integrationInitialized) return;
+        
+        console.log('🎨 Initializing Terra IDE Integration...');
+        
+        // 1. Setup message listener untuk Terra IDE
+        window.addEventListener('message', function(event) {
+            // Safety check - hanya terima dari parent window
+            if (event.source !== parent) return;
+            
+            const data = event.data;
+            if (!data || typeof data !== 'object') return;
+            
+            console.log('📨 Message from Terra IDE:', data);
+            
+            switch (data.type) {
+                case 'SET_COLOR':
+                    handleSetColor(data.color);
+                    break;
+                    
+                case 'GET_COLOR':
+                    sendCurrentColor();
+                    break;
+                    
+                case 'PING':
+                    sendReadySignal();
+                    break;
+            }
+        });
+        
+        // 2. Override copy functions untuk mengirim ke IDE
+        patchCopyFunctions();
+        
+        // 3. Tambahkan Terra IDE buttons
+        addIDEButtons();
+        
+        // 4. Kirim ready signal
+        setTimeout(sendReadySignal, 500);
+        
+        integrationInitialized = true;
+        console.log('✅ Terra IDE Integration ready');
+    }
+    
+    function handleSetColor(color) {
+        try {
+            // Update Chroma Lab dengan warna dari IDE
+            if (color && typeof updateStateFromHex === 'function') {
+                // Bersihkan format
+                const hexColor = color.startsWith('#') ? color : '#' + color;
+                updateStateFromHex(hexColor.replace('#', ''));
+                
+                // Trigger UI update
+                if (typeof updateUI === 'function') {
+                    updateUI();
+                    showToast(`Color set from Terra IDE: ${color}`);
+                }
+            }
+        } catch (error) {
+            console.error('Error setting color from IDE:', error);
+        }
+    }
+    
+    function sendCurrentColor() {
+        if (!window.state || !window.state.hex) return;
+        
+        const color = window.state.hex;
+        const rgb = window.state.rgb;
+        const hsl = window.state.hsl;
+        
+        parent.postMessage({
+            type: 'CURRENT_COLOR',
+            color: color,
+            alternativeFormats: {
+                hex: color,
+                rgb: `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`,
+                rgba: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${window.state.alpha || 1})`,
+                hsl: `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`,
+                hsla: `hsla(${hsl.h}, ${hsl.s}%, ${hsl.l}%, ${window.state.alpha || 1})`,
+                oklch: typeof window.state.oklch !== 'undefined' ? 
+                    `oklch(${window.state.oklch.L.toFixed(3)} ${window.state.oklch.C.toFixed(3)} ${window.state.oklch.h.toFixed(1)})` : null
+            }
+        }, '*');
+    }
+    
+    function sendReadySignal() {
+        parent.postMessage({ type: 'READY' }, '*');
+    }
+    
+    function patchCopyFunctions() {
+        // Simpan original function
+        const originalCopyText = window.copyText;
+        
+        // Override dengan version yang mengirim ke IDE
+        window.copyText = function(text) {
+            // Panggil original
+            if (originalCopyText) {
+                originalCopyText(text);
+            } else {
+                // Fallback
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast('Copied to clipboard');
+                });
+            }
+            
+            // Juga kirim ke Terra IDE
+            parent.postMessage({
+                type: 'COLOR_SELECTED',
+                data: {
+                    color: text,
+                    timestamp: Date.now(),
+                    source: 'copy'
+                }
+            }, '*');
+        };
+        
+        // Patch semua copy buttons yang ada
+        document.addEventListener('click', function(e) {
+            const copyBtn = e.target.closest('.copy-btn');
+            if (copyBtn) {
+                // Extract color dari parent element
+                setTimeout(() => {
+                    const color = extractColorFromElement(copyBtn);
+                    if (color) {
+                        parent.postMessage({
+                            type: 'COLOR_SELECTED',
+                            color: color,
+                            timestamp: Date.now(),
+                            source: 'button'
+                        }, '*');
+                    }
+                }, 100);
+            }
+        });
+    }
+    
+    function extractColorFromElement(element) {
+        // Coba extract dari berbagai tempat
+        const parent = element.closest('.result-item');
+        if (parent) {
+            const valueElement = parent.querySelector('.result-value');
+            if (valueElement) {
+                return valueElement.textContent.trim();
+            }
+        }
+        
+        // Fallback ke state global
+        return window.state?.hex;
+    }
+    
+    function addIDEButtons() {
+        // Tunggu sampai DOM siap
+        setTimeout(() => {
+            // Cari container yang tepat untuk menambahkan buttons
+            const controlPanel = document.querySelector('.control-panel');
+            const dataPanel = document.querySelector('.data-panel');
+            
+            if (!controlPanel && !dataPanel) {
+                console.warn('Could not find container for IDE buttons');
+                return;
+            }
+            
+            // Terra IDE Integration Section
+            const ideSection = document.createElement('div');
+            ideSection.className = 'glass-card';
+            ideSection.style.marginTop = '20px';
+            ideSection.innerHTML = `
+                <div class="section-title">
+                    <i class="ph ph-rocket-launch"></i> Terra IDE Integration
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                    <button class="ide-action-btn" onclick="sendToIDE('color')" 
+                            style="background: rgba(0, 122, 255, 0.1); color: var(--accent);">
+                        <i class="ph ph-arrow-right"></i> Send Color
+                    </button>
+                    <button class="ide-action-btn" onclick="sendToIDE('palette')"
+                            style="background: rgba(0, 122, 255, 0.1); color: var(--accent);">
+                        <i class="ph ph-palette"></i> Send Palette
+                    </button>
+                    <button class="ide-action-btn" onclick="sendToIDE('theme')"
+                            style="background: rgba(0, 122, 255, 0.1); color: var(--accent);">
+                        <i class="ph ph-moon"></i> Dark Theme
+                    </button>
+                    <button class="ide-action-btn" onclick="sendToIDE('close')"
+                            style="background: var(--accent); color: white;">
+                        <i class="ph ph-check"></i> Insert & Close
+                    </button>
+                </div>
+                <div style="margin-top: 12px; font-size: 11px; color: var(--text-secondary); text-align: center;">
+                    Colors will be inserted into Terra IDE editor
+                </div>
+            `;
+            
+            // Style untuk buttons
+            const style = document.createElement('style');
+            style.textContent = `
+                .ide-action-btn {
+                    border: none;
+                    padding: 10px;
+                    border-radius: 10px;
+                    cursor: pointer;
+                    font-size: 12px;
+                    font-weight: 600;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 6px;
+                    transition: all 0.2s ease;
+                }
+                .ide-action-btn:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                }
+                .ide-action-btn:active {
+                    transform: translateY(0);
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // Tambahkan ke DOM
+            if (controlPanel) {
+                controlPanel.appendChild(ideSection);
+            } else if (dataPanel) {
+                dataPanel.appendChild(ideSection);
+            }
+            
+            // Tambahkan global functions untuk buttons
+            window.sendToIDE = function(type) {
+                switch (type) {
+                    case 'color':
+                        sendColorToIDE();
+                        break;
+                    case 'palette':
+                        sendPaletteToIDE();
+                        break;
+                    case 'theme':
+                        sendThemeToIDE();
+                        break;
+                    case 'close':
+                        sendAndClose();
+                        break;
+                }
+            };
+            
+window.sendColorToIDE = function() {
+    const hex = window.state?.hex;
+    const rgb = window.state?.rgb;
+    const hsl = window.state?.hsl;
+    
+    if (!hex) return;
+    
+    parent.postMessage({
+        type: 'COLOR_SELECTED',
+        data: { // ← PERBAIKAN: Kirim structure yang konsisten
+            color: hex,
+            format: 'hex',
+            alternativeFormats: {
+                hex: hex,
+                rgb: `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`,
+                rgba: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${window.state.alpha || 1})`,
+                hsl: `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`,
+                hsla: `hsla(${hsl.h}, ${hsl.s}%, ${hsl.l}%, ${window.state.alpha || 1})`
+            }
+        }
+    }, '*');
+    
+    showToast('Color sent to Terra IDE');
+};
+            
+            window.sendPaletteToIDE = function() {
+                if (!window.state || !window.generateTints || !window.generateShades || !window.generateHarmonies) return;
+                
+                const tints = window.generateTints(window.state.rgb.r, window.state.rgb.g, window.state.rgb.b);
+                const shades = window.generateShades(window.state.rgb.r, window.state.rgb.g, window.state.rgb.b);
+                const harmonies = window.generateHarmonies(window.state.hsl.h, window.state.hsl.s, window.state.hsl.l);
+                
+                parent.postMessage({
+                    type: 'COLOR_PALETTE',
+                    data: {
+                        base: window.state.hex,
+                        tints: tints,
+                        shades: shades,
+                        harmonies: harmonies.slice(0, 3) // Hanya 3 pertama
+                    }
+                }, '*');
+                
+                showToast('Palette sent to Terra IDE');
+            };
+            
+            window.sendThemeToIDE = function() {
+                if (!window.state || !window.generateSmartDarkModeColors) return;
+                
+                const darkTheme = window.generateSmartDarkModeColors(window.state.hex);
+                
+                parent.postMessage({
+                    type: 'DARK_MODE_THEME',
+                    data: {
+                        theme: {
+                            base: window.state.hex,
+                            dark: darkTheme,
+                            css: `/* Dark Mode Theme for ${window.state.hex} */
+:root {
+    --color-primary: ${window.state.hex};
+    --color-dark-bg: ${darkTheme.background};
+    --color-dark-surface: ${darkTheme.surface};
+    --color-dark-accent: ${darkTheme.accent};
+    --color-dark-text: ${darkTheme.textPrimary};
+    --color-dark-text-secondary: ${darkTheme.textSecondary};
+}`
+                        }
+                    }
+                }, '*');
+                
+                showToast('Dark theme sent to Terra IDE');
+            };
+            
+window.sendAndClose = function() {
+    sendColorToIDE();
+    setTimeout(() => {
+        parent.postMessage({ type: 'CLOSE_REQUEST' }, '*');
+    }, 300);
+};
+            
+        }, 1000); // Tunggu 1 detik agar Chroma Lab selesai load
+    }
+    
+    // Initialize ketika DOM ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initTerraIDEIntegration);
+    } else {
+        initTerraIDEIntegration();
+    }
+})();
+
+// Start the application
+document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
