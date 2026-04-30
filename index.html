@@ -234,6 +234,12 @@
     <button class="btn btn-icon" onclick="IDE.refreshFileTree()" title="Refresh">
         <i class="fas fa-sync-alt"></i>
     </button>
+<button class="btn btn-icon" onclick="IDE.triggerImport()" title="Import Files/Folder">
+    <i class="fas fa-file-import"></i>
+</button>
+<!-- Input tersembunyi untuk file/folder -->
+<input type="file" id="import-upload" multiple style="display: none;">
+<input type="file" id="import-folder-upload" webkitdirectory directory multiple style="display: none;">
 </div>
 
 <div class="file-tree" id="file-tree">
