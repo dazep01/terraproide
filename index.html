@@ -231,16 +231,12 @@
     <button class="btn btn-icon" onclick="IDE.createFolder()" title="New Folder">
         <i class="fas fa-folder-plus"></i>
     </button>
-    <button class="btn btn-icon" onclick="IDE.refreshFileTree()" title="Refresh">
-        <i class="fas fa-sync-alt"></i>
-    </button>
 <button class="btn btn-icon" onclick="IDE.triggerImport()" title="Import Files/Folder">
     <i class="fas fa-file-import"></i>
 </button>
-<!-- Input tersembunyi untuk file/folder -->
-<input type="file" id="import-upload" multiple style="display: none;">
-<input type="file" id="import-folder-upload" webkitdirectory directory multiple style="display: none;">
-</div>
+    <button class="btn btn-icon" onclick="IDE.refreshFileTree()" title="Refresh">
+        <i class="fas fa-sync-alt"></i>
+    </button>
 
 <div class="file-tree" id="file-tree">
     <!-- File tree akan di-render oleh JS -->
@@ -352,6 +348,10 @@
 
     <!-- Asset Upload Input (Hidden) -->
     <input type="file" id="asset-upload" multiple accept="image/*,video/*,audio/*" style="display: none;">
+<!-- Input untuk Import File & Folder -->
+<input type="file" id="import-upload" multiple style="display: none;">
+<input type="file" id="import-folder-upload" webkitdirectory directory multiple style="display: none;">
+
     
 <!-- POPUP PENGEMBANGAN -->
 <div id="developmentModal" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); display:none; align-items:center; justify-content:center; z-index:10000; animation:fadeIn 0.3s ease;">
