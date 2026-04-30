@@ -3926,6 +3926,9 @@ Complexity: ${Math.round(nodes / Math.max(1, functions))} nodes per function
                 this.beautifyCode();
               }
             });
+// Import Listeners
+document.getElementById('import-upload').addEventListener('change', (e) => this.handleImport(e));
+document.getElementById('import-folder-upload').addEventListener('change', (e) => this.handleImport(e));
           },
 
           // ==================== COLOR LAB INTEGRATION ====================
@@ -4155,6 +4158,81 @@ JSON.parse('{"a":1}')   - JSON utilities
             this.logToConsole(`Creating folder: ${name}`, 'info');
             this.showToast('Coming Soon', 'Folder creation in next update', 'info');
           },
+
+triggerImport() {
+    const choice = confirm("Klik 'OK' untuk upload File (termasuk .zip) atau 'Cancel' untuk upload Folder.");
+    if (choice) {
+        document.getElementById('import-upload').click();
+    } else {
+        document.getElementById('import-folder-upload').click();
+    }
+},
+
+async handleImport(event) {
+    const files = Array.from(event.target.files);
+    this.showToast('Importing', `Processing ${files.length} items...`, 'info');
+    
+    for (const file of files) {
+        if (file.name.endsWith('.zip')) {
+            await this.handleZipUpload(file);
+        } else {
+            await this.saveFileToDB(file);
+        }
+    }
+    await this.renderFileTree();
+    this.showToast('Import Success', 'Items imported successfully', 'success');
+},
+
+async handleZipUpload(zipFile) {
+    try {
+        const zip = await JSZip.loadAsync(zipFile);
+        const promises = [];
+        
+        zip.forEach((relativePath, file) => {
+            if (!file.dir) {
+                const promise = file.async('string').then(async (content) => {
+                    await this.db.files.add({
+                        id: `import-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                        path: '/' + relativePath,
+                        name: relativePath.split('/').pop(),
+                        type: 'file',
+                        parent: '/' + (relativePath.split('/').slice(0, -1).join('/') || ''),
+                        content: content,
+                        createdAt: Date.now(),
+                        updatedAt: Date.now()
+                    });
+                });
+                promises.push(promise);
+            }
+        });
+        
+        await Promise.all(promises);
+    } catch (error) {
+        console.error('ZIP extraction failed:', error);
+        this.showToast('ZIP Error', 'Failed to extract ZIP file', 'error');
+    }
+},
+
+async saveFileToDB(file) {
+    const relativePath = file.webkitRelativePath || file.name;
+    const content = await file.text();
+    
+    try {
+        await this.db.files.add({
+            id: `upload-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            path: '/' + relativePath,
+            name: file.name,
+            type: 'file',
+            parent: '/' + (relativePath.split('/').slice(0, -1).join('/') || ''),
+            content: content,
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+        });
+    } catch (e) {
+        console.warn('File already exists or DB error:', relativePath);
+    }
+},
+
 
           deleteFile(path) {
             if (confirm('Are you sure you want to delete this file?')) {
